@@ -186,6 +186,16 @@
     }
   }
 
+  function getUserDocId(user) {
+    if (!user) return null;
+    return user.email ? user.email.toLowerCase() : user.uid;
+  }
+
+  function getUserDocRef(user) {
+    const docId = getUserDocId(user);
+    return db.collection('users').doc(docId);
+  }
+
   function normalizeTimestamp(value) {
     if (value && typeof value.toMillis === 'function') {
       return value.toMillis();
@@ -203,13 +213,14 @@
     return JSON.stringify(local) !== JSON.stringify(remoteData);
   }
 
-  function startSync(uid) {
+  function startSync(user) {
     if (currentUnsub) currentUnsub();
-    const docRef = db.collection('users').doc(uid);
+    const docRef = getUserDocRef(user);
+    if (!docRef) return;
 
     currentUnsub = docRef.onSnapshot(async snap => {
       if (!snap.exists) {
-        console.log('Creating new user document...');
+        console.log('Creating new user document...', getUserDocId(user));
         try {
           await pushLocalData(docRef);
         } catch (err) {
@@ -224,7 +235,7 @@
       const localUpdated = getLocalLastUpdated();
       const remoteUpdated = normalizeTimestamp(remote.lastUpdated);
       const remoteDiffers = isRemoteDataDifferent(remote);
-      console.log('Sync snapshot', { localUpdated, remoteUpdated, remoteDiffers, lastSyncTime });
+      console.log('Sync snapshot', { localUpdated, remoteUpdated, remoteDiffers, lastSyncTime, docId: getUserDocId(user) });
 
       if (remoteDiffers && remoteUpdated >= localUpdated && remoteUpdated !== lastSyncTime) {
         applyRemoteData(remote);
@@ -258,7 +269,9 @@
     if (lastUpdated < lastSyncTime + 500) return;
     
     try {
-      await db.collection('users').doc(user.uid).set({
+      const docRef = getUserDocRef(user);
+      if (!docRef) return;
+      await docRef.set({
         categories: payload.categories || [],
         recipes: payload.recipes || [],
         shoppingList: payload.shoppingList || {},
@@ -266,7 +279,7 @@
         syncedAt: firebase.firestore.FieldValue.serverTimestamp()
       }, { merge: true });
       lastSyncTime = lastUpdated;
-      console.log('Sync pushed to Firestore', { uid: user.uid, lastUpdated });
+      console.log('Sync pushed to Firestore', { user: getUserDocId(user), lastUpdated });
     } catch (err) {
       console.error('Error syncing to Firestore', err);
     }
@@ -406,8 +419,9 @@
     auth.onAuthStateChanged(user => {
       updateAuthUI(user);
       if (user) {
-        console.log(`Logged in as: ${user.email || user.uid}`);
-        startSync(user.uid);
+        const docId = getUserDocId(user);
+        console.log(`Logged in as: ${user.email || user.uid}`, { docId });
+        startSync(user);
       } else {
         console.log('User not logged in');
         stopSync();
