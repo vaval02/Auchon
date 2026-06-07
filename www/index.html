@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Auchon</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="app">
+        <!-- Header -->
+        <header class="header">
+            <h1><i class="fas fa-shopping-cart"></i> Auchon</h1>
+            <div class="header-actions">
+                <button id="authBtn" class="icon-btn" title="Connexion"><i class="fas fa-user"></i></button>
+                <button id="darkModeBtn" class="icon-btn" title="Mode sombre"><i class="fas fa-moon"></i></button>
+            </div>
+        </header>
+
+        <div class="container">
+            <!-- Sidebar: Categories -->
+            <aside class="sidebar">
+                <div class="sidebar-header">
+                    <h2>Catégories</h2>
+                    <button id="addCategoryBtn" class="btn-icon" title="Ajouter une catégorie"><i class="fas fa-plus"></i></button>
+                </div>
+                <nav class="categories-list" id="categoriesList"></nav>
+            </aside>
+
+            <!-- Main Content -->
+            <main class="main-content">
+                <!-- Tabs Navigation -->
+                <div class="tabs">
+                    <button class="tab-btn active" data-tab="products">Produits</button>
+                    <button class="tab-btn" data-tab="recipes">Recettes</button>
+                    <button class="tab-btn" data-tab="shopping">Liste</button>
+                </div>
+
+                <!-- Products Tab -->
+                <section id="products-tab" class="tab-content active">
+                    <div class="products-header">
+                        <h2 id="categoryTitle">Fruits et légumes</h2>
+                        <button id="addProductBtn" class="btn-primary"><i class="fas fa-plus"></i> Ajouter un produit</button>
+                    </div>
+                    <div class="products-list" id="productsList"></div>
+                </section>
+
+                <!-- Recipes Tab -->
+                <section id="recipes-tab" class="tab-content">
+                    <div class="recipes-header">
+                        <h2>Recettes</h2>
+                        <button id="addRecipeBtn" class="btn-primary"><i class="fas fa-plus"></i> Ajouter une recette</button>
+                    </div>
+                    <div class="recipes-list" id="recipesList"></div>
+                </section>
+                <!-- Shopping Tab (mobile) -->
+                <section id="shopping-tab" class="tab-content">
+                    <div class="shopping-header">
+                        <h2>Liste finale</h2>
+                        <div class="shopping-header-actions">
+                            <button id="clearListBtnTab" class="btn-icon" title="Vider la liste"><i class="fas fa-trash"></i></button>
+                        </div>
+                    </div>
+                    <div class="shopping-list-content">
+                        <ul id="shoppingListTab" class="shopping-list"></ul>
+                        <div id="emptyStateTab" class="empty-state">Aucun produit sélectionné</div>
+                    </div>
+                    <div class="shopping-actions"></div>
+                </section>
+            </main>
+
+            <!-- Right Sidebar: Shopping List -->
+            <aside class="shopping-list-sidebar">
+                <div class="shopping-header">
+                    <h2>Liste finale</h2>
+                    <div class="shopping-header-actions">
+                        <button id="clearListBtn" class="btn-icon" title="Vider la liste"><i class="fas fa-trash"></i></button>
+                    </div>
+                </div>
+                <div class="shopping-list-content">
+                    <ul id="shoppingList" class="shopping-list"></ul>
+                    <div id="emptyState" class="empty-state">
+                        Aucun produit sélectionné
+                    </div>
+                </div>
+                <div class="shopping-actions">
+                </div>
+            </aside>
+        </div>
+    </div>
+
+    <!-- Modals -->
+    <!-- Add Category Modal -->
+    <div id="addCategoryModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Ajouter une catégorie</h3>
+                <button class="modal-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <input type="text" id="categoryInput" placeholder="Nom de la catégorie" class="input-field">
+            </div>
+            <div class="modal-footer">
+                <button class="btn-secondary modal-close">Annuler</button>
+                <button id="confirmCategoryBtn" class="btn-primary">Ajouter</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Product Modal -->
+    <div id="addProductModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Ajouter un produit</h3>
+                <button class="modal-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <input type="text" id="productInput" placeholder="Nom du produit" class="input-field">
+            </div>
+            <div class="modal-footer">
+                <button class="btn-secondary modal-close">Annuler</button>
+                <button id="confirmProductBtn" class="btn-primary">Ajouter</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Recipe Modal -->
+    <div id="addRecipeModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Ajouter une recette</h3>
+                <button class="modal-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <input type="text" id="recipeNameInput" placeholder="Nom de la recette" class="input-field">
+                <div class="recipe-ingredients">
+                    <label>Ingrédients :</label>
+                    <div id="ingredientsList" class="ingredients-input-list"></div>
+                    <button id="addIngredientBtn" class="btn-secondary btn-small">+ Ingrédient</button>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-secondary modal-close">Annuler</button>
+                <button id="confirmRecipeBtn" class="btn-primary">Ajouter</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recipe Details Modal -->
+    <div id="recipeDetailsModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="recipeDetailsTitle">Détails de la recette</h3>
+                <button class="modal-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div id="recipeIngredientsList" class="recipe-ingredients-check"></div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-secondary modal-close">Fermer</button>
+                <button id="addRecipeIngredientsBtn" class="btn-primary">Ajouter à la liste</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Product Modal -->
+    <div id="editProductModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Modifier le produit</h3>
+                <button class="modal-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <input type="text" id="editProductInput" placeholder="Nom du produit" class="input-field">
+            </div>
+            <div class="modal-footer">
+                <button class="btn-secondary modal-close">Annuler</button>
+                <button id="confirmEditProductBtn" class="btn-primary">Valider</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Category Modal -->
+    <div id="editCategoryModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Modifier la catégorie</h3>
+                <button class="modal-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <input type="text" id="editCategoryInput" placeholder="Nom de la catégorie" class="input-field">
+            </div>
+            <div class="modal-footer">
+                <button class="btn-danger modal-close" id="deleteCategoryBtn"><i class="fas fa-trash"></i> Supprimer</button>
+                <button class="btn-secondary modal-close">Annuler</button>
+                <button id="confirmEditCategoryBtn" class="btn-primary">Valider</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Recipe Ingredients Modal -->
+    <div id="editRecipeModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Modifier les ingrédients</h3>
+                <button class="modal-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="recipe-ingredients">
+                    <label>Ingrédients :</label>
+                    <div id="recipeIngredientsEditList" class="ingredients-input-list"></div>
+                    <button id="addIngredientToRecipeBtn" class="btn-secondary btn-small"><i class="fas fa-plus"></i> Ingrédient</button>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-secondary modal-close">Annuler</button>
+                <button id="confirmEditRecipeBtn" class="btn-primary">Valider</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Auth Modal -->
+    <div id="authModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Connexion</h3>
+                <button class="modal-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p>Connectez-vous pour synchroniser vos données entre vos appareils.</p>
+                <button id="googleSignInBtn" class="btn-primary btn-full"><i class="fab fa-google"></i> Se connecter avec Google</button>
+                <div class="divider">ou</div>
+                <input type="email" id="emailInput" placeholder="Email" class="input-field">
+                <input type="password" id="passwordInput" placeholder="Mot de passe" class="input-field">
+            </div>
+            <div class="modal-footer">
+                <button id="emailLoginBtn" class="btn-secondary">Connexion</button>
+                <button id="emailRegisterBtn" class="btn-primary">Créer un compte</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+    <script src="firebase-config.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore-compat.js"></script>
+    <script src="firebase-sync.js"></script>
+</body>
+</html>

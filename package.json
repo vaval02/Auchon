@@ -1,0 +1,24 @@
+{
+  "name": "auchon",
+  "version": "1.0.0",
+  "description": "Une application web minimaliste et intuitive pour gérer votre liste de courses avec support des recettes et personnalisation complète.",
+  "main": "app.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "cap sync",
+    "build:android": "cap sync android",
+    "build:ios": "cap sync ios",
+    "open:android": "cap open android",
+    "open:ios": "cap open ios"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "@capacitor/android": "^8.4.0",
+    "@capacitor/cli": "^8.4.0",
+    "@capacitor/core": "^8.4.0",
+    "@capacitor/ios": "^8.4.0"
+  }
+}
