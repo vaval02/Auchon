@@ -1,7 +1,18 @@
 // Minimal Firebase sync bridge
 (function(){
   if (!window.firebaseConfig) {
-    console.warn('Firebase config not found. Copy firebase-config.example.js to firebase-config.js and fill values.');
+    console.error('Firebase config not found. Copy firebase-config.example.js to firebase-config.js and fill values from a Firebase Web app.');
+    return;
+  }
+
+  const missingFields = ['apiKey', 'authDomain', 'projectId', 'appId'].filter(field => !window.firebaseConfig[field]);
+  if (missingFields.length) {
+    console.error(`Firebase config incomplete: missing ${missingFields.join(', ')}. Use the web app config from Firebase Console.`);
+    return;
+  }
+
+  if (typeof window.firebaseConfig.appId === 'string' && window.firebaseConfig.appId.includes(':android:')) {
+    console.error('Firebase appId appears to be an Android app config. Please use Firebase Web app configuration for web/auth usage.');
     return;
   }
 
