@@ -150,10 +150,20 @@
     }
   }
 
+  function isRemoteDataDifferent(remote) {
+    const local = getLocalData() || { categories: [], recipes: [], shoppingList: {} };
+    const remoteData = {
+      categories: remote.categories || [],
+      recipes: remote.recipes || [],
+      shoppingList: remote.shoppingList || {}
+    };
+    return JSON.stringify(local) !== JSON.stringify(remoteData);
+  }
+
   function startSync(uid) {
     if (currentUnsub) currentUnsub();
     const docRef = db.collection('users').doc(uid);
-    
+
     currentUnsub = docRef.onSnapshot(async snap => {
       if (!snap.exists) {
         console.log('Creating new user document...');
@@ -169,13 +179,12 @@
       if (!remote || !remote.lastUpdated) return;
 
       const localUpdated = getLocalLastUpdated();
-      
-      // Remote is newer: pull from cloud
-      if (remote.lastUpdated > localUpdated && remote.lastUpdated !== lastSyncTime) {
+      const remoteDiffers = isRemoteDataDifferent(remote);
+      console.log('Sync snapshot', { localUpdated, remoteUpdated: remote.lastUpdated, remoteDiffers, lastSyncTime });
+
+      if (remoteDiffers && remote.lastUpdated >= localUpdated && remote.lastUpdated !== lastSyncTime) {
         applyRemoteData(remote);
-      } 
-      // Local is newer: push to cloud
-      else if (remote.lastUpdated < localUpdated) {
+      } else if (remote.lastUpdated < localUpdated) {
         try {
           await pushLocalData(docRef);
         } catch (err) {

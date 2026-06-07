@@ -122,6 +122,16 @@
     }
   }
 
+  function isRemoteDataDifferent(remote) {
+    const local = getLocalData() || { categories: [], recipes: [], shoppingList: {} };
+    const remoteData = {
+      categories: remote.categories || [],
+      recipes: remote.recipes || [],
+      shoppingList: remote.shoppingList || {}
+    };
+    return JSON.stringify(local) !== JSON.stringify(remoteData);
+  }
+
   function startSync(uid) {
     if (currentUnsub) currentUnsub();
     const docRef = db.collection('users').doc(uid);
@@ -139,7 +149,10 @@
       if (!remote || !remote.lastUpdated) return;
 
       const localUpdated = getLocalLastUpdated();
-      if (remote.lastUpdated > localUpdated) {
+      const remoteDiffers = isRemoteDataDifferent(remote);
+      console.log('Sync snapshot', { localUpdated, remoteUpdated: remote.lastUpdated, remoteDiffers });
+
+      if (remoteDiffers && remote.lastUpdated >= localUpdated) {
         applyRemoteData(remote);
       } else if (remote.lastUpdated < localUpdated) {
         try {
