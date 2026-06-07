@@ -28,7 +28,7 @@ build/
 # Environment
 .env
 .env.local
-firebase-config.js
+# firebase-config.js
 
 # OS
 Thumbs.db
