@@ -106,6 +106,41 @@
     });
   }
 
+  function showFirebaseNotice(message) {
+    const render = () => {
+      let overlay = document.getElementById('firebase-notice-overlay');
+      if (!overlay) {
+        overlay = document.createElement('div');
+        overlay.id = 'firebase-notice-overlay';
+        Object.assign(overlay.style, {
+          position: 'fixed',
+          left: '12px',
+          right: '12px',
+          bottom: '12px',
+          zIndex: '99999',
+          padding: '14px',
+          borderRadius: '10px',
+          backgroundColor: 'rgba(46, 204, 113, 0.95)',
+          color: '#ffffff',
+          fontFamily: 'sans-serif',
+          fontSize: '14px',
+          lineHeight: '1.4',
+          boxShadow: '0 0 20px rgba(0,0,0,0.4)'
+        });
+        document.body.appendChild(overlay);
+      }
+      overlay.textContent = message;
+      setTimeout(() => {
+        if (overlay.parentNode) overlay.parentNode.removeChild(overlay);
+      }, 2500);
+    };
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', () => render(), { once: true });
+    } else {
+      render();
+    }
+  }
+
   function applyRemoteData(data) {
     if (!data || typeof data !== 'object') return;
     const local = {
@@ -117,9 +152,17 @@
       localStorage.setItem('shoppingListData', JSON.stringify(local));
       saveLocalTimestamp(data.lastUpdated || Date.now());
       window.dispatchEvent(new Event('app:remoteUpdate'));
+      showFirebaseNotice('Mise à jour cloud reçue');
     } catch (e) {
       console.error('Failed to apply remote data', e);
     }
+  }
+
+  function normalizeTimestamp(value) {
+    if (value && typeof value.toMillis === 'function') {
+      return value.toMillis();
+    }
+    return Number(value) || 0;
   }
 
   function isRemoteDataDifferent(remote) {
@@ -149,12 +192,13 @@
       if (!remote || !remote.lastUpdated) return;
 
       const localUpdated = getLocalLastUpdated();
+      const remoteUpdated = normalizeTimestamp(remote.lastUpdated);
       const remoteDiffers = isRemoteDataDifferent(remote);
-      console.log('Sync snapshot', { localUpdated, remoteUpdated: remote.lastUpdated, remoteDiffers });
+      console.log('Sync snapshot', { localUpdated, remoteUpdated, remoteDiffers, lastSyncTime });
 
-      if (remoteDiffers && remote.lastUpdated >= localUpdated) {
+      if (remoteDiffers && remoteUpdated >= localUpdated && remoteUpdated !== lastSyncTime) {
         applyRemoteData(remote);
-      } else if (remote.lastUpdated < localUpdated) {
+      } else if (remoteUpdated < localUpdated) {
         try {
           await pushLocalData(docRef);
         } catch (err) {
@@ -182,6 +226,7 @@
         shoppingList: payload.shoppingList || {},
         lastUpdated
       });
+      console.log('Sync pushed to Firestore', { uid: user.uid, lastUpdated });
     } catch (err) {
       console.error('Error syncing to Firestore', err);
     }
