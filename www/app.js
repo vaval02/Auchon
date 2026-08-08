@@ -215,6 +215,8 @@ class ShoppingListApp {
         this.setupEventListeners();
         document.body.classList.add('products-active');
         this.renderCategories();
+        this.renderProductsCategorySelect();
+        this.updateProductsToolbarVisibility();
         this.renderProducts();
         this.renderRecipes();
         this.renderShoppingList();
@@ -233,6 +235,11 @@ class ShoppingListApp {
         document.querySelectorAll('.tab-btn').forEach(btn => {
             btn.addEventListener('click', (e) => this.handleTabClick(e));
         });
+
+        const categorySelect = document.getElementById('productsCategorySelect');
+        if (categorySelect) {
+            categorySelect.addEventListener('change', () => this.handleProductsCategorySelect(categorySelect));
+        }
 
         // Category buttons
         document.addEventListener('click', (e) => {
@@ -273,9 +280,12 @@ class ShoppingListApp {
         });
 
         // Add product
-        document.getElementById('addProductBtn').addEventListener('click', () => {
-            this.openModal('addProductModal');
-        });
+        const addProductBtn = document.getElementById('addProductBtn');
+        if (addProductBtn) {
+            addProductBtn.addEventListener('click', () => {
+                this.openModal('addProductModal');
+            });
+        }
 
         document.getElementById('confirmProductBtn').addEventListener('click', () => {
             this.addProduct();
@@ -476,8 +486,53 @@ class ShoppingListApp {
         this.currentCategory = parseInt(btn.dataset.index);
         document.querySelectorAll('.category-btn').forEach(b => b.classList.remove('active'));
         btn.classList.add('active');
+        this.renderProductsCategorySelect();
         this.renderProducts();
         this.scrollToCurrentCategory();
+    }
+
+    updateProductsToolbarVisibility(tabName = 'products') {
+        const toolbar = document.getElementById('productsToolbar');
+        if (toolbar) {
+            toolbar.classList.toggle('active', tabName === 'products');
+        }
+    }
+
+    renderProductsCategorySelect() {
+        const select = document.getElementById('productsCategorySelect');
+        if (!select) return;
+
+        const currentValue = select.value;
+        select.innerHTML = '<option value="all">Toutes</option>';
+
+        this.categories.forEach(category => {
+            const option = document.createElement('option');
+            option.value = category.id;
+            option.textContent = category.name;
+            if (currentValue === category.id || (currentValue === 'all' && this.currentCategory === this.categories.indexOf(category))) {
+                option.selected = true;
+            }
+            select.appendChild(option);
+        });
+
+        if (this.currentCategory < 0 || this.currentCategory >= this.categories.length) {
+            select.value = 'all';
+        } else {
+            const currentCategory = this.categories[this.currentCategory];
+            if (currentCategory) {
+                select.value = currentCategory.id;
+            }
+        }
+    }
+
+    handleProductsCategorySelect(select) {
+        const value = select.value;
+        this.currentCategory = value === 'all' ? -1 : this.categories.findIndex(category => category.id === value);
+        if (this.currentCategory < 0) {
+            this.currentCategory = -1;
+        }
+        this.renderCategories();
+        this.renderProducts();
     }
 
     scrollToCurrentCategory() {
@@ -596,14 +651,32 @@ class ShoppingListApp {
         const listContainer = document.querySelector('.products-list-container');
         let closestSection = null;
 
-        this.categories.forEach(category => {
+        this.categories.forEach((category, index) => {
             const section = document.createElement('section');
             section.className = 'category-section';
             section.id = `category-${category.id}`;
 
+            const headingRow = document.createElement('div');
+            headingRow.className = 'category-section-header';
+
             const heading = document.createElement('h3');
             heading.textContent = category.name;
-            section.appendChild(heading);
+
+            const addBtn = document.createElement('button');
+            addBtn.className = 'category-add-product-btn btn-small btn-secondary';
+            addBtn.type = 'button';
+            addBtn.innerHTML = '<i class="fas fa-plus"></i> Produit';
+            addBtn.title = `Ajouter un produit dans ${category.name}`;
+            addBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                this.currentCategory = selectedCategoryIndex === null ? index : selectedCategoryIndex;
+                this.renderCategories();
+                this.openModal('addProductModal');
+            });
+
+            headingRow.appendChild(heading);
+            headingRow.appendChild(addBtn);
+            section.appendChild(headingRow);
 
             if (category.products.length === 0) {
                 const emptySection = document.createElement('div');
@@ -1302,6 +1375,7 @@ class ShoppingListApp {
         const content = document.getElementById(`${tabName}-tab`);
         if (content) content.classList.add('active');
 
+        this.updateProductsToolbarVisibility(tabName);
         document.body.classList.toggle('products-active', tabName === 'products');
 
         if (tabName === 'shopping') this.renderShoppingList();

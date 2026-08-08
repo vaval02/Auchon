@@ -197,19 +197,62 @@ html, body {
     display: flex;
     flex-direction: column;
     overflow: hidden;
+    position: relative;
+}
+
+.main-topbar {
+    position: sticky;
+    top: 0;
+    z-index: 50;
+    display: flex;
+    flex-direction: column;
+    flex-shrink: 0;
+    background-color: var(--bg-dark);
+    border-bottom: 1px solid var(--border);
 }
 
 /* Tabs */
 .tabs {
     display: flex;
     gap: 0.5rem;
-    border-bottom: 2px solid var(--border);
     background-color: var(--bg);
     padding: 0 2rem;
     overflow-x: auto;
     min-height: 56px;
     align-items: center;
-    transition: padding 0.2s ease;
+    flex-shrink: 0;
+    width: 100%;
+}
+
+.products-toolbar {
+    display: none;
+    align-items: center;
+    background-color: var(--bg-dark);
+    padding: 0.8rem 2rem 0.9rem;
+    flex-shrink: 0;
+    border-top: 1px solid var(--border);
+    box-shadow: 0 1px 0 rgba(0, 0, 0, 0.04);
+}
+
+.products-toolbar.active {
+    display: flex !important;
+}
+
+.products-category-select {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.6rem;
+    font-size: 0.95rem;
+    color: var(--text-light);
+}
+
+.products-category-select select {
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    padding: 0.55rem 0.9rem;
+    background-color: var(--bg);
+    color: var(--text);
+    min-width: 180px;
 }
 
 .tab-btn {
@@ -248,6 +291,8 @@ html, body {
     min-height: 0;
     width: 100%;
     box-sizing: border-box;
+    margin-top: 0;
+    background-color: var(--bg-dark);
 }
 
 .tab-content.active {
@@ -267,21 +312,62 @@ html, body {
 
 .search-bar {
     margin-bottom: 1rem;
-    width: 100%;
+    width: min(100%, 360px);
     display: flex;
     align-items: center;
-    gap: 0.5rem;
-    flex-wrap: wrap;
+    gap: 0.45rem;
+    flex-wrap: nowrap;
 }
 
 .search-input {
-    width: 100%;
+    flex: 1 1 auto;
+    min-width: 0;
+    width: auto;
     max-width: 100%;
-    padding: 0.9rem 1rem;
-    border-radius: var(--radius);
+    padding: 0.8rem 0.95rem;
+    border-radius: 999px;
     border: 1px solid var(--border);
-    font-size: 1rem;
+    font-size: 0.95rem;
     background: var(--bg);
+    margin-bottom: 0;
+}
+
+.input-field.search-input {
+    width: auto;
+    margin-bottom: 0;
+}
+
+.search-actions {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    flex-shrink: 0;
+}
+
+.search-btn,
+.search-clear-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid var(--border);
+    background: var(--bg);
+    color: var(--text);
+    border-radius: 999px;
+    width: 2.25rem;
+    min-width: 2.25rem;
+    height: 2.25rem;
+    cursor: pointer;
+    padding: 0;
+    flex: 0 0 auto;
+}
+
+.search-btn:hover,
+.search-clear-btn:hover {
+    background: rgba(0, 0, 0, 0.05);
+}
+
+.search-clear-btn {
+    color: var(--text);
 }
 
 .product-category-chip {
@@ -336,6 +422,55 @@ body:not(.products-active) .sidebar {
 .products-header h2, .recipes-header h2 {
     font-size: 1.5rem;
     font-weight: 600;
+}
+
+.category-section {
+    margin-bottom: 1.5rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid var(--border);
+}
+
+.category-section:last-child {
+    border-bottom: none;
+}
+
+.category-section-header {
+    display: flex;
+    justify-content: flex-start;
+    align-items: center;
+    gap: 0.6rem;
+    margin-bottom: 1rem;
+    flex-wrap: wrap;
+}
+
+.category-section-header h3 {
+    margin: 0;
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: var(--primary);
+}
+
+.category-add-product-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.4rem 0.75rem;
+    font-size: 0.85rem;
+    border-radius: 999px;
+    margin-left: 0.2rem;
+}
+
+.category-product-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    gap: 1rem;
+}
+
+.category-empty-state {
+    padding: 1rem;
+    border-radius: var(--radius);
+    background: var(--bg);
+    color: var(--text-light);
 }
 
 /* Buttons */
@@ -790,6 +925,12 @@ body:not(.products-active) .sidebar {
         height: auto;
     }
 
+    .main-topbar {
+        position: sticky;
+        top: 0;
+        z-index: 60;
+    }
+
     .sidebar {
         width: 100%;
         min-width: auto;
@@ -876,6 +1017,20 @@ body:not(.products-active) .sidebar {
 
     .products-list, .recipes-list {
         gap: 0.75rem;
+    }
+
+    .products-toolbar {
+        padding: 0.75rem 1rem 0.85rem;
+        position: relative;
+        z-index: 20;
+        border-top: 1px solid var(--border);
+        background-color: var(--bg-dark);
+        display: flex !important;
+    }
+
+    .tabs {
+        position: relative;
+        z-index: 30;
     }
 }
 

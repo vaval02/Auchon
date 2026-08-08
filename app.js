@@ -214,6 +214,8 @@ class ShoppingListApp {
     init() {
         this.setupEventListeners();
         this.renderCategories();
+        this.renderProductsCategorySelect();
+        this.updateProductsToolbarVisibility();
         this.renderProducts();
         this.renderRecipes();
         this.renderShoppingList();
@@ -273,9 +275,12 @@ class ShoppingListApp {
         });
 
         // Add product
-        document.getElementById('addProductBtn').addEventListener('click', () => {
-            this.openModal('addProductModal');
-        });
+        const addProductBtn = document.getElementById('addProductBtn');
+        if (addProductBtn) {
+            addProductBtn.addEventListener('click', () => {
+                this.openModal('addProductModal');
+            });
+        }
 
         document.getElementById('confirmProductBtn').addEventListener('click', () => {
             this.addProduct();
@@ -343,8 +348,27 @@ class ShoppingListApp {
         }
 
         const searchInput = document.getElementById('productSearchInput');
+        const searchBtn = document.getElementById('productSearchBtn');
+        const clearSearchBtn = document.getElementById('productSearchClearBtn');
+
         if (searchInput) {
             searchInput.addEventListener('input', () => this.renderProducts());
+            searchInput.addEventListener('search', () => this.renderProducts());
+        }
+
+        if (searchBtn) {
+            searchBtn.addEventListener('click', () => this.renderProducts());
+        }
+
+        if (clearSearchBtn) {
+            clearSearchBtn.addEventListener('click', (event) => {
+                event.stopPropagation();
+                if (searchInput) {
+                    searchInput.value = '';
+                    searchInput.focus();
+                }
+                this.renderProducts();
+            });
         }
 
         const selectAllButton = document.getElementById('selectAllIngredientsBtn');
@@ -461,8 +485,53 @@ class ShoppingListApp {
         this.currentCategory = parseInt(btn.dataset.index);
         document.querySelectorAll('.category-btn').forEach(b => b.classList.remove('active'));
         btn.classList.add('active');
+        this.renderProductsCategorySelect();
         this.renderProducts();
         this.scrollToCurrentCategory();
+    }
+
+    updateProductsToolbarVisibility(tabName = 'products') {
+        const toolbar = document.getElementById('productsToolbar');
+        if (toolbar) {
+            toolbar.classList.toggle('active', tabName === 'products');
+        }
+    }
+
+    renderProductsCategorySelect() {
+        const select = document.getElementById('productsCategorySelect');
+        if (!select) return;
+
+        const currentValue = select.value;
+        select.innerHTML = '<option value="all">Toutes</option>';
+
+        this.categories.forEach(category => {
+            const option = document.createElement('option');
+            option.value = category.id;
+            option.textContent = category.name;
+            if (currentValue === category.id || (currentValue === 'all' && this.currentCategory === this.categories.indexOf(category))) {
+                option.selected = true;
+            }
+            select.appendChild(option);
+        });
+
+        if (this.currentCategory < 0 || this.currentCategory >= this.categories.length) {
+            select.value = 'all';
+        } else {
+            const currentCategory = this.categories[this.currentCategory];
+            if (currentCategory) {
+                select.value = currentCategory.id;
+            }
+        }
+    }
+
+    handleProductsCategorySelect(select) {
+        const value = select.value;
+        this.currentCategory = value === 'all' ? -1 : this.categories.findIndex(category => category.id === value);
+        if (this.currentCategory < 0) {
+            this.currentCategory = -1;
+        }
+        this.renderCategories();
+        this.renderProducts();
     }
 
     scrollToCurrentCategory() {
@@ -570,43 +639,91 @@ class ShoppingListApp {
             return;
         }
 
-        const category = this.categories[this.currentCategory];
-        document.getElementById('categoryTitle').textContent = category.name;
+        const selectedCategoryIndex = this.currentCategory >= 0 ? this.currentCategory : null;
+        const categoriesToRender = selectedCategoryIndex === null ? this.categories : [this.categories[selectedCategoryIndex]];
 
-        category.products.forEach(product => {
-            const item = document.createElement('div');
-            item.className = 'product-item';
+        if (selectedCategoryIndex === null) {
+            document.getElementById('categoryTitle').textContent = 'Tous les produits';
+        } else {
+            document.getElementById('categoryTitle').textContent = this.categories[selectedCategoryIndex].name;
+        }
 
-            const checkbox = document.createElement('input');
-            checkbox.type = 'checkbox';
-            checkbox.id = `product-${product.id}`;
-            checkbox.dataset.productName = product.name;
-            checkbox.checked = this.shoppingList[product.name] !== undefined;
-            checkbox.addEventListener('change', () => {
-                this.toggleProduct(product.name, checkbox.checked, category.name);
+        categoriesToRender.forEach((category, index) => {
+            const section = document.createElement('section');
+            section.className = 'category-section';
+            section.id = `category-${category.id}`;
+
+            const headingRow = document.createElement('div');
+            headingRow.className = 'category-section-header';
+
+            const heading = document.createElement('h3');
+            heading.textContent = category.name;
+
+            const addBtn = document.createElement('button');
+            addBtn.className = 'category-add-product-btn btn-small btn-secondary';
+            addBtn.type = 'button';
+            addBtn.innerHTML = '<i class="fas fa-plus"></i> Produit';
+            addBtn.title = `Ajouter un produit dans ${category.name}`;
+            addBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                this.currentCategory = selectedCategoryIndex === null ? index : selectedCategoryIndex;
+                this.renderCategories();
+                this.openModal('addProductModal');
             });
 
-            const label = document.createElement('label');
-            label.htmlFor = `product-${product.id}`;
-            label.textContent = product.name;
-            label.style.cursor = 'text';
-            label.title = 'Double-cliquez pour éditer';
-            label.addEventListener('dblclick', () => {
-                this.editProduct(category, product);
-            });
+            headingRow.appendChild(heading);
+            headingRow.appendChild(addBtn);
+            section.appendChild(headingRow);
 
-            const deleteBtn = document.createElement('button');
-            deleteBtn.className = 'product-delete';
-            deleteBtn.innerHTML = '<i class="fas fa-times"></i>';
-            deleteBtn.title = 'Supprimer ce produit';
-            deleteBtn.addEventListener('click', () => {
-                this.deleteProduct(category, product);
-            });
+            if (category.products.length === 0) {
+                const emptySection = document.createElement('div');
+                emptySection.className = 'category-empty-state';
+                emptySection.textContent = 'Aucun produit dans cette catégorie';
+                section.appendChild(emptySection);
+            } else {
+                const grid = document.createElement('div');
+                grid.className = 'category-product-grid';
 
-            item.appendChild(checkbox);
-            item.appendChild(label);
-            item.appendChild(deleteBtn);
-            list.appendChild(item);
+                category.products.forEach(product => {
+                    const item = document.createElement('div');
+                    item.className = 'product-item';
+
+                    const checkbox = document.createElement('input');
+                    checkbox.type = 'checkbox';
+                    checkbox.id = `product-${product.id}`;
+                    checkbox.dataset.productName = product.name;
+                    checkbox.checked = this.shoppingList[product.name] !== undefined;
+                    checkbox.addEventListener('change', () => {
+                        this.toggleProduct(product.name, checkbox.checked, category.name);
+                    });
+
+                    const label = document.createElement('label');
+                    label.htmlFor = `product-${product.id}`;
+                    label.textContent = product.name;
+                    label.style.cursor = 'text';
+                    label.title = 'Double-cliquez pour éditer';
+                    label.addEventListener('dblclick', () => {
+                        this.editProduct(category, product);
+                    });
+
+                    const deleteBtn = document.createElement('button');
+                    deleteBtn.className = 'product-delete';
+                    deleteBtn.innerHTML = '<i class="fas fa-times"></i>';
+                    deleteBtn.title = 'Supprimer ce produit';
+                    deleteBtn.addEventListener('click', () => {
+                        this.deleteProduct(category, product);
+                    });
+
+                    item.appendChild(checkbox);
+                    item.appendChild(label);
+                    item.appendChild(deleteBtn);
+                    grid.appendChild(item);
+                });
+
+                section.appendChild(grid);
+            }
+
+            list.appendChild(section);
         });
     }
 
@@ -1203,6 +1320,8 @@ class ShoppingListApp {
         if (content) content.classList.add('active');
 
         if (content) content.classList.add('active');
+        this.updateProductsToolbarVisibility(tabName);
+        this.renderProductsCategorySelect();
         document.body.classList.toggle('products-active', tabName === 'products');
 
         if (tabName === 'shopping') {

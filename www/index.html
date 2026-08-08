@@ -32,11 +32,22 @@
 
             <!-- Main Content -->
             <main class="main-content">
-                <!-- Tabs Navigation -->
-                <div class="tabs">
-                    <button class="tab-btn active" data-tab="products">Produits</button>
-                    <button class="tab-btn" data-tab="recipes">Recettes</button>
-                    <button class="tab-btn" data-tab="shopping">Liste</button>
+                <div class="main-topbar">
+                    <!-- Tabs Navigation -->
+                    <div class="tabs">
+                        <button class="tab-btn active" data-tab="products">Produits</button>
+                        <button class="tab-btn" data-tab="recipes">Recettes</button>
+                        <button class="tab-btn" data-tab="shopping">Liste</button>
+                    </div>
+
+                    <div class="products-toolbar active" id="productsToolbar">
+                        <label class="products-category-select" for="productsCategorySelect">
+                            <span>Catégorie</span>
+                            <select id="productsCategorySelect">
+                                <option value="all">Toutes</option>
+                            </select>
+                        </label>
+                    </div>
                 </div>
 
                 <!-- Products Tab -->
@@ -49,7 +60,6 @@
                         <div class="search-actions">
                             <button id="productSearchBtn" class="btn-secondary search-btn" title="Rechercher"><i class="fas fa-search"></i></button>
                             <button id="productSearchClearBtn" class="btn-secondary search-clear-btn" title="Effacer la recherche"><i class="fas fa-times"></i></button>
-                            <button id="addProductBtn" class="btn-primary search-action-btn" title="Ajouter un produit"><i class="fas fa-plus"></i> Produit</button>
                         </div>
                     </div>
                     <div class="products-body">
