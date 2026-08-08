@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gestionnaire de Liste de Courses</title>
+    <title>Liste de courses</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -14,10 +14,9 @@
     <div class="app">
         <!-- Header -->
         <header class="header">
-            <h1><i class="fas fa-shopping-cart"></i> Liste de Courses</h1>
+            <h1><i class="fas fa-shopping-cart"></i> Liste de courses</h1>
             <div class="header-actions">
                 <button id="authBtn" class="icon-btn" title="Connexion"><i class="fas fa-user"></i></button>
-                <button id="darkModeBtn" class="icon-btn" title="Mode sombre"><i class="fas fa-moon"></i></button>
             </div>
         </header>
 
@@ -44,7 +43,10 @@
                 <section id="products-tab" class="tab-content active">
                     <div class="products-header">
                         <h2 id="categoryTitle">Fruits et légumes</h2>
-                        <button id="addProductBtn" class="btn-primary"><i class="fas fa-plus"></i> Ajouter un produit</button>
+                        <button id="addProductBtn" class="btn-primary"><i class="fas fa-plus"></i> Produit</button>
+                    </div>
+                    <div class="search-bar">
+                        <input id="productSearchInput" type="search" placeholder="Rechercher un produit…" class="input-field search-input">
                     </div>
                     <div class="products-list" id="productsList"></div>
                 </section>
@@ -158,6 +160,9 @@
                 <button class="modal-close">&times;</button>
             </div>
             <div class="modal-body">
+                <div class="recipe-actions-row">
+                    <button id="selectAllIngredientsBtn" class="btn-secondary btn-small">Tout sélectionner</button>
+                </div>
                 <div id="recipeIngredientsList" class="recipe-ingredients-check"></div>
             </div>
             <div class="modal-footer">
@@ -196,7 +201,6 @@
             </div>
             <div class="modal-footer">
                 <button class="btn-danger modal-close" id="deleteCategoryBtn"><i class="fas fa-trash"></i> Supprimer</button>
-                <button class="btn-secondary modal-close">Annuler</button>
                 <button id="confirmEditCategoryBtn" class="btn-primary">Valider</button>
             </div>
         </div>

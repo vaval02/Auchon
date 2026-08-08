@@ -23,18 +23,22 @@ Pour protéger les données de chaque utilisateur, il faut configurer les règle
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    
-    // ✅ Chaque utilisateur ne peut accéder qu'à ses propres données
+
+    // ✅ Données privées par utilisateur
     match /users/{uid} {
-      allow read, write: if request.auth.uid == uid;
-      
-      // Les sous-collections aussi
+      allow read, write: if request.auth != null && request.auth.uid == uid;
+
       match /{document=**} {
-        allow read, write: if request.auth.uid == uid;
+        allow read, write: if request.auth != null && request.auth.uid == uid;
       }
     }
-    
-    // ✅ Éventuellement: partage de recettes publiques
+
+    // ✅ Liste partagée entre les appareils du même compte
+    match /sharedLists/{document=**} {
+      allow read, write: if request.auth != null;
+    }
+
+    // ✅ Recettes publiques si besoin
     match /public_recipes/{document=**} {
       allow read: if true;
       allow write: if request.auth != null;

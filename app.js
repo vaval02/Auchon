@@ -18,13 +18,18 @@ class ShoppingListApp {
 
     loadOrInitializeData() {
         const savedData = localStorage.getItem('shoppingListData');
+        const defaultCategories = this.getDefaultCategories();
         if (savedData) {
             const data = JSON.parse(savedData);
-            this.categories = data.categories;
-            this.recipes = data.recipes;
+            if (!Array.isArray(data.categories) || data.categories.length < defaultCategories.length) {
+                this.categories = defaultCategories;
+            } else {
+                this.categories = this.mergeSavedCategories(data.categories);
+            }
+            this.recipes = Array.isArray(data.recipes) ? data.recipes : this.getDefaultRecipes();
             this.shoppingList = data.shoppingList || {};
         } else {
-            this.categories = this.getDefaultCategories();
+            this.categories = defaultCategories;
             this.recipes = this.getDefaultRecipes();
             this.shoppingList = {};
         }
@@ -123,6 +128,28 @@ class ShoppingListApp {
         ];
     }
 
+    mergeSavedCategories(savedCategories) {
+        const defaultCategories = this.getDefaultCategories();
+        const defaultIds = new Set(defaultCategories.map(category => category.id));
+        const savedMap = new Map(savedCategories.map(category => [category.id, category]));
+
+        const merged = defaultCategories.map(defaultCategory => {
+            return savedMap.has(defaultCategory.id) ? savedMap.get(defaultCategory.id) : defaultCategory;
+        });
+
+        savedCategories.forEach(category => {
+            if (!defaultIds.has(category.id)) {
+                merged.push(category);
+            }
+        });
+
+        if (merged.length < defaultCategories.length) {
+            return defaultCategories;
+        }
+
+        return merged;
+    }
+
     getDefaultRecipes() {
         return [
             {
@@ -190,6 +217,7 @@ class ShoppingListApp {
         this.renderProducts();
         this.renderRecipes();
         this.renderShoppingList();
+        document.body.classList.add('products-active');
         // listen for remote updates applied by sync bridge
         window.addEventListener('app:remoteUpdate', () => {
             this.loadOrInitializeData();
@@ -267,6 +295,13 @@ class ShoppingListApp {
             this.addIngredientInputRow();
         });
 
+        const selectAllIngredientsBtn = document.getElementById('selectAllIngredientsBtn');
+        if (selectAllIngredientsBtn) {
+            selectAllIngredientsBtn.addEventListener('click', () => {
+                this.toggleSelectAllIngredients();
+            });
+        }
+
         document.getElementById('confirmRecipeBtn').addEventListener('click', () => {
             this.addRecipe();
         });
@@ -307,15 +342,17 @@ class ShoppingListApp {
             });
         }
 
-        
+        const searchInput = document.getElementById('productSearchInput');
+        if (searchInput) {
+            searchInput.addEventListener('input', () => this.renderProducts());
+        }
 
-
-
-        // Dark mode
-        document.getElementById('darkModeBtn').addEventListener('click', () => {
-            document.body.classList.toggle('dark-mode');
-            localStorage.setItem('darkMode', document.body.classList.contains('dark-mode'));
-        });
+        const selectAllButton = document.getElementById('selectAllIngredientsBtn');
+        if (selectAllButton) {
+            selectAllButton.addEventListener('click', () => {
+                this.toggleSelectAllIngredients();
+            });
+        }
 
         // Edit category & recipe modal actions
         document.getElementById('confirmEditCategoryBtn').addEventListener('click', () => {
@@ -338,10 +375,6 @@ class ShoppingListApp {
             this.confirmRecipeIngredients();
         });
 
-        // Load dark mode preference
-        if (localStorage.getItem('darkMode') === 'true') {
-            document.body.classList.add('dark-mode');
-        }
     }
 
     // ==================== MODAL MANAGEMENT ====================
@@ -429,6 +462,17 @@ class ShoppingListApp {
         document.querySelectorAll('.category-btn').forEach(b => b.classList.remove('active'));
         btn.classList.add('active');
         this.renderProducts();
+        this.scrollToCurrentCategory();
+    }
+
+    scrollToCurrentCategory() {
+        const category = this.categories[this.currentCategory];
+        if (!category) return;
+
+        const section = document.getElementById(`category-${category.id}`);
+        if (section) {
+            section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
     }
 
     addCategory() {
@@ -457,11 +501,77 @@ class ShoppingListApp {
     // ==================== PRODUCT MANAGEMENT ====================
 
     renderProducts() {
-        const category = this.categories[this.currentCategory];
-        document.getElementById('categoryTitle').textContent = category.name;
-
         const list = document.getElementById('productsList');
         list.innerHTML = '';
+
+        const searchQuery = document.getElementById('productSearchInput')?.value.trim().toLowerCase();
+        if (searchQuery) {
+            document.getElementById('categoryTitle').textContent = `Résultats pour « ${searchQuery} »`;
+            const matches = [];
+
+            this.categories.forEach(category => {
+                category.products.forEach(product => {
+                    if (product.name.toLowerCase().includes(searchQuery)) {
+                        matches.push({ product, categoryName: category.name });
+                    }
+                });
+            });
+
+            if (matches.length === 0) {
+                const noResult = document.createElement('div');
+                noResult.className = 'empty-state';
+                noResult.textContent = `Aucun produit trouvé pour « ${searchQuery} »`;
+                list.appendChild(noResult);
+                return;
+            }
+
+            matches.forEach(({ product, categoryName }) => {
+                const item = document.createElement('div');
+                item.className = 'product-item';
+
+                const checkbox = document.createElement('input');
+                checkbox.type = 'checkbox';
+                checkbox.id = `product-${product.id}`;
+                checkbox.dataset.productName = product.name;
+                checkbox.checked = this.shoppingList[product.name] !== undefined;
+                checkbox.addEventListener('change', () => {
+                    this.toggleProduct(product.name, checkbox.checked, categoryName);
+                });
+
+                const label = document.createElement('label');
+                label.htmlFor = `product-${product.id}`;
+                label.textContent = product.name;
+                label.style.cursor = 'text';
+                label.title = 'Double-cliquez pour éditer';
+                label.addEventListener('dblclick', () => {
+                    this.editProduct(this.categories.find(cat => cat.name === categoryName), product);
+                });
+
+                const categoryChip = document.createElement('span');
+                categoryChip.className = 'product-category-chip';
+                categoryChip.textContent = categoryName;
+
+                const deleteBtn = document.createElement('button');
+                deleteBtn.className = 'product-delete';
+                deleteBtn.innerHTML = '<i class="fas fa-times"></i>';
+                deleteBtn.title = 'Supprimer ce produit';
+                deleteBtn.addEventListener('click', () => {
+                    const category = this.categories.find(cat => cat.name === categoryName);
+                    if (category) this.deleteProduct(category, product);
+                });
+
+                item.appendChild(checkbox);
+                item.appendChild(label);
+                item.appendChild(categoryChip);
+                item.appendChild(deleteBtn);
+                list.appendChild(item);
+            });
+
+            return;
+        }
+
+        const category = this.categories[this.currentCategory];
+        document.getElementById('categoryTitle').textContent = category.name;
 
         category.products.forEach(product => {
             const item = document.createElement('div');
@@ -470,6 +580,7 @@ class ShoppingListApp {
             const checkbox = document.createElement('input');
             checkbox.type = 'checkbox';
             checkbox.id = `product-${product.id}`;
+            checkbox.dataset.productName = product.name;
             checkbox.checked = this.shoppingList[product.name] !== undefined;
             checkbox.addEventListener('change', () => {
                 this.toggleProduct(product.name, checkbox.checked, category.name);
@@ -510,7 +621,7 @@ class ShoppingListApp {
 
         const category = this.categories[this.currentCategory];
         const newProduct = {
-            id: Math.max(...category.products.map(p => p.id), 0) + 1,
+            id: this.getNextProductId(),
             name: name
         };
 
@@ -585,6 +696,7 @@ class ShoppingListApp {
         }
         this.saveData();
         this.renderShoppingList();
+        this.updateProductChecks();
     }
 
     addToShoppingList(productName, quantity = 1, source = 'recipe') {
@@ -606,6 +718,11 @@ class ShoppingListApp {
     findCategoryName(productName) {
         const category = this.categories.find(cat => cat.products.some(product => product.name === productName));
         return category ? category.name : null;
+    }
+
+    getNextProductId() {
+        const allIds = this.categories.flatMap(category => category.products.map(product => product.id));
+        return Math.max(...allIds, 0) + 1;
     }
 
     parseIngredientQuantity(quantity) {
@@ -675,20 +792,46 @@ class ShoppingListApp {
                     nameSpan.className = 'shopping-item-name';
                     nameSpan.textContent = productName;
 
-                    const qtyBtn = document.createElement('button');
-                    qtyBtn.className = 'shopping-item-qty badge-editable';
-                    qtyBtn.textContent = data.quantity;
-                    qtyBtn.title = 'Modifier la quantité';
-                    qtyBtn.addEventListener('click', () => {
-                        const val = prompt(`Modifier la quantité pour "${productName}"`, String(data.quantity));
-                        if (val === null) return;
-                        const n = parseInt(val, 10);
-                        if (Number.isNaN(n) || n < 1) { alert('Entrez un nombre valide >= 1'); return; }
-                        this.shoppingList[productName].quantity = n;
+                    const qtyContainer = document.createElement('div');
+                    qtyContainer.className = 'quantity-control';
+
+                    const decreaseBtn = document.createElement('button');
+                    decreaseBtn.className = 'qty-control-btn';
+                    decreaseBtn.type = 'button';
+                    decreaseBtn.textContent = '−';
+                    decreaseBtn.title = 'Réduire';
+                    decreaseBtn.addEventListener('click', () => {
+                        const currentQty = Number(this.shoppingList[productName].quantity) || 1;
+                        if (currentQty > 1) {
+                            this.shoppingList[productName].quantity = currentQty - 1;
+                        } else {
+                            delete this.shoppingList[productName];
+                        }
                         this.saveData();
                         this.renderShoppingList();
                         this.updateProductChecks();
                     });
+
+                    const qtyValue = document.createElement('span');
+                    qtyValue.className = 'qty-value';
+                    qtyValue.textContent = String(data.quantity);
+
+                    const increaseBtn = document.createElement('button');
+                    increaseBtn.className = 'qty-control-btn';
+                    increaseBtn.type = 'button';
+                    increaseBtn.textContent = '+';
+                    increaseBtn.title = 'Ajouter';
+                    increaseBtn.addEventListener('click', () => {
+                        const currentQty = Number(this.shoppingList[productName].quantity) || 1;
+                        this.shoppingList[productName].quantity = currentQty + 1;
+                        this.saveData();
+                        this.renderShoppingList();
+                        this.updateProductChecks();
+                    });
+
+                    qtyContainer.appendChild(decreaseBtn);
+                    qtyContainer.appendChild(qtyValue);
+                    qtyContainer.appendChild(increaseBtn);
 
                     const removeBtn = document.createElement('button');
                     removeBtn.className = 'item-remove';
@@ -702,7 +845,7 @@ class ShoppingListApp {
                     });
 
                     item.appendChild(nameSpan);
-                    item.appendChild(qtyBtn);
+                    item.appendChild(qtyContainer);
                     item.appendChild(removeBtn);
                     listEl.appendChild(item);
                 });
@@ -712,8 +855,8 @@ class ShoppingListApp {
 
     updateProductChecks() {
         document.querySelectorAll('.product-item input[type="checkbox"]').forEach(checkbox => {
-            const label = checkbox.nextElementSibling.textContent;
-            checkbox.checked = this.shoppingList[label] !== undefined;
+            const productName = checkbox.dataset.productName || checkbox.nextElementSibling?.textContent;
+            checkbox.checked = this.shoppingList[productName] !== undefined;
         });
     }
 
@@ -858,6 +1001,11 @@ class ShoppingListApp {
             container.appendChild(item);
         });
 
+        const selectAllButton = document.getElementById('selectAllIngredientsBtn');
+        if (selectAllButton) {
+            selectAllButton.textContent = 'Tout sélectionner';
+        }
+
         this.openModal('recipeDetailsModal');
     }
 
@@ -867,6 +1015,34 @@ class ShoppingListApp {
             this.addToShoppingList(ingredient.name, quantity, 'recipe');
         });
         this.closeModal(document.getElementById('recipeDetailsModal'));
+    }
+
+    toggleSelectAllIngredients() {
+        const container = document.getElementById('recipeIngredientsList');
+        if (!container) return;
+
+        const checkboxes = Array.from(container.querySelectorAll('input[type="checkbox"]'));
+        const allSelected = checkboxes.length > 0 && checkboxes.every(cb => cb.checked);
+
+        checkboxes.forEach(cb => {
+            const index = Number(cb.dataset.ingredientIndex);
+            const ingredient = this.currentRecipeForDetails?.ingredients[index];
+            if (!ingredient) return;
+
+            cb.checked = !allSelected;
+            if (cb.checked) {
+                if (!this.recipeIngredientsToAdd.some(i => i.name === ingredient.name)) {
+                    this.recipeIngredientsToAdd.push(ingredient);
+                }
+            } else {
+                this.recipeIngredientsToAdd = this.recipeIngredientsToAdd.filter(i => i.name !== ingredient.name);
+            }
+        });
+
+        const selectAllButton = document.getElementById('selectAllIngredientsBtn');
+        if (selectAllButton) {
+            selectAllButton.textContent = allSelected ? 'Tout sélectionner' : 'Tout désélectionner';
+        }
     }
 
     // ================ CATEGORY EDIT / DELETE ================
@@ -1025,6 +1201,9 @@ class ShoppingListApp {
 
         const content = document.getElementById(`${tabName}-tab`);
         if (content) content.classList.add('active');
+
+        if (content) content.classList.add('active');
+        document.body.classList.toggle('products-active', tabName === 'products');
 
         if (tabName === 'shopping') {
             this.renderShoppingList();

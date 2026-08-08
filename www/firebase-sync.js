@@ -22,11 +22,29 @@
           fontFamily: 'sans-serif',
           fontSize: '14px',
           lineHeight: '1.4',
-          boxShadow: '0 0 20px rgba(0,0,0,0.4)'
+          boxShadow: '0 0 20px rgba(0,0,0,0.4)',
+          opacity: '1',
+          transition: 'opacity 0.3s ease'
         });
         document.body.appendChild(overlay);
       }
       overlay.textContent = message;
+      overlay.style.opacity = '1';
+
+      if (errorTimeoutId) {
+        clearTimeout(errorTimeoutId);
+      }
+      errorTimeoutId = setTimeout(() => {
+        if (overlay.parentNode) {
+          overlay.style.opacity = '0';
+          setTimeout(() => {
+            if (overlay.parentNode) {
+              overlay.parentNode.removeChild(overlay);
+            }
+          }, 300);
+        }
+        errorTimeoutId = null;
+      }, 5000);
     };
     if (document.readyState === 'loading') {
       document.addEventListener('DOMContentLoaded', () => render(), { once: true });
@@ -63,6 +81,7 @@
   const auth = firebase.auth();
   const db = firebase.firestore();
   let currentUnsub = null;
+  let errorTimeoutId = null;
   let isSyncing = false;
   let lastSyncTime = 0;
 
@@ -72,7 +91,7 @@
     const authBtn = document.getElementById('authBtn');
     if (!authBtn) return;
     if (user) {
-      authBtn.title = `Connecté: ${user.email || user.uid}`;
+      authBtn.title = 'Connecté';
       authBtn.innerHTML = '<i class="fas fa-user-check"></i>';
       authBtn.style.color = '#4CAF50';
     } else {
@@ -102,7 +121,14 @@
   function saveLocalTimestamp(timestamp) {
     localStorage.setItem('shoppingListLastUpdated', timestamp.toString());
   }
-
+  function normalizeData(data) {
+    if (data === null || typeof data !== 'object') return data;
+    if (Array.isArray(data)) return data.map(normalizeData);
+    return Object.keys(data).sort().reduce((result, key) => {
+      result[key] = normalizeData(data[key]);
+      return result;
+    }, {});
+  }
   // ==================== SYNC OPERATIONS ====================
 
   async function pushLocalData(docRef) {
@@ -127,6 +153,10 @@
       console.log('✓ Données synchronisées vers le cloud');
     } catch (err) {
       console.error('Error pushing local data to cloud', err);
+      if (err && err.code === 'permission-denied') {
+        const projectId = (window.firebaseConfig && window.firebaseConfig.projectId) || 'inconnu';
+        showFirebaseError(`Synchronisation impossible : les règles Firestore bloquent l'écriture sur la liste partagée. Projet utilisé : ${projectId}. Vérifiez que les règles sont publiées sur ce projet et que vous êtes connecté.`);
+      }
     } finally {
       isSyncing = false;
     }
@@ -175,9 +205,10 @@
       shoppingList: data.shoppingList || {}
     };
     try {
+      const remoteUpdated = normalizeTimestamp(data.lastUpdated || Date.now());
       localStorage.setItem('shoppingListData', JSON.stringify(local));
-      saveLocalTimestamp(data.lastUpdated || Date.now());
-      // Signal to the app that remote data has been updated
+      saveLocalTimestamp(remoteUpdated);
+      lastSyncTime = remoteUpdated;
       window.dispatchEvent(new Event('app:remoteUpdate'));
       console.log('✓ Données synchronisées depuis le cloud');
       showFirebaseNotice('Mise à jour cloud reçue');
@@ -188,11 +219,12 @@
 
   function getUserDocId(user) {
     if (!user) return null;
-    return user.email ? user.email.toLowerCase() : user.uid;
+    return user.uid || (user.email ? user.email.toLowerCase() : null);
   }
 
   function getUserDocRef(user) {
     const docId = getUserDocId(user);
+    if (!docId) return null;
     return db.collection('users').doc(docId);
   }
 
@@ -210,7 +242,7 @@
       recipes: remote.recipes || [],
       shoppingList: remote.shoppingList || {}
     };
-    return JSON.stringify(local) !== JSON.stringify(remoteData);
+    return JSON.stringify(normalizeData(local)) !== JSON.stringify(normalizeData(remoteData));
   }
 
   function startSync(user) {
@@ -235,8 +267,10 @@
       const remoteDiffers = isRemoteDataDifferent(remote);
       console.log('Sync snapshot', { localUpdated, remoteUpdated, remoteDiffers, lastSyncTime, docId: getUserDocId(user) });
 
-      if (remoteDiffers && remoteUpdated >= localUpdated && remoteUpdated !== lastSyncTime) {
+      if (remoteDiffers && remoteUpdated > localUpdated && remoteUpdated !== lastSyncTime) {
         applyRemoteData(remote);
+      } else if (!remoteDiffers && remoteUpdated !== lastSyncTime) {
+        lastSyncTime = remoteUpdated;
       } else if (remoteUpdated < localUpdated) {
         try {
           await pushLocalData(docRef);
@@ -278,6 +312,10 @@
       console.log('Sync pushed to Firestore', { user: getUserDocId(user), lastUpdated });
     } catch (err) {
       console.error('Error syncing to Firestore', err);
+      if (err && err.code === 'permission-denied') {
+        const projectId = (window.firebaseConfig && window.firebaseConfig.projectId) || 'inconnu';
+        showFirebaseError(`Synchronisation impossible : les règles Firestore bloquent l'écriture sur la liste partagée. Projet utilisé : ${projectId}. Vérifiez que les règles sont publiées sur ce projet et que vous êtes connecté.`);
+      }
     }
   }
 
@@ -303,6 +341,7 @@
   }
 
   // ==================== DOM READY & EVENT LISTENERS ====================
+  function initializeAuthListeners() {
     const authBtn = document.getElementById('authBtn');
     const authModal = document.getElementById('authModal');
     const googleSignInBtn = document.getElementById('googleSignInBtn');
@@ -311,26 +350,30 @@
     const emailInput = document.getElementById('emailInput');
     const passwordInput = document.getElementById('passwordInput');
 
-    // Auth button click handler
     if (authBtn) {
-      const handleAuthBtnClick = () => {
+      const handleAuthBtnClick = (event) => {
+        if (event && event.type === 'touchstart') {
+          event.preventDefault();
+          event.stopPropagation();
+        }
         const user = auth.currentUser;
         if (user) {
-          if (confirm(`Déconnexion de ${user.email || user.uid} ?`)) {
+          if (confirm('Déconnexion ?')) {
             auth.signOut()
               .then(() => console.log('User signed out'))
               .catch(err => console.error('Sign out error', err));
           }
           return;
         }
-        console.log('Opening auth modal');
+        console.log('Opening auth modal', event && event.type);
         openAuthModal();
       };
       authBtn.addEventListener('click', handleAuthBtnClick);
-      authBtn.addEventListener('touchstart', handleAuthBtnClick, { passive: true });
+      authBtn.addEventListener('touchstart', handleAuthBtnClick, { passive: false });
+      authBtn.addEventListener('pointerdown', handleAuthBtnClick, { passive: false });
     }
 
-    // Modal close buttons
+    if (authModal) {
       authModal.querySelectorAll('.modal-close').forEach(btn => {
         btn.addEventListener('click', () => closeAuthModal());
       });
@@ -354,7 +397,6 @@
       });
     }
 
-    // Email Login
     if (emailLoginBtn) {
       emailLoginBtn.addEventListener('click', () => {
         const email = emailInput.value.trim();
@@ -374,7 +416,6 @@
           });
       });
 
-      // Enter key support for login
       if (passwordInput) {
         passwordInput.addEventListener('keypress', (e) => {
           if (e.key === 'Enter') emailLoginBtn.click();
@@ -396,7 +437,7 @@
         }
         auth.createUserWithEmailAndPassword(email, password)
           .then(() => {
-            console.log('User registration successful', email);
+            console.log('User registration successful');
             closeAuthModal();
           })
           .catch(err => {
@@ -406,19 +447,24 @@
       });
     }
 
-    // Auth state listener - most important for sync
     auth.onAuthStateChanged(user => {
       updateAuthUI(user);
       if (user) {
         const docId = getUserDocId(user);
-        console.log(`Logged in as: ${user.email || user.uid}`, { docId });
+        console.log('User logged in', { docId });
         startSync(user);
       } else {
         console.log('User not logged in');
         stopSync();
       }
     });
-  });
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initializeAuthListeners, { once: true });
+  } else {
+    initializeAuthListeners();
+  }
 
   // ==================== APP EVENTS ====================
 

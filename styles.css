@@ -32,6 +32,8 @@ html, body {
     background-color: var(--bg);
     color: var(--text);
     transition: background-color 0.3s, color 0.3s;
+    scroll-behavior: smooth;
+    overflow-x: hidden;
 }
 
 .app {
@@ -84,7 +86,6 @@ html, body {
     overflow: hidden;
     gap: 1px;
     background-color: var(--border);
-    height: calc(100vh - 78px);
 }
 
 /* Sidebar */
@@ -191,6 +192,7 @@ html, body {
 /* Main Content */
 .main-content {
     flex: 1;
+    min-height: 0;
     background-color: var(--bg-dark);
     display: flex;
     flex-direction: column;
@@ -207,6 +209,7 @@ html, body {
     overflow-x: auto;
     min-height: 56px;
     align-items: center;
+    transition: padding 0.2s ease;
 }
 
 .tab-btn {
@@ -217,11 +220,12 @@ html, body {
     color: var(--text-light);
     font-size: 1rem;
     font-weight: 600;
-    transition: all 0.2s;
+    transition: all 0.2s ease;
     border-bottom: 3px solid transparent;
     margin-bottom: -2px;
     white-space: nowrap;
     border-radius: var(--radius);
+    min-width: 110px;
 }
 
 .tab-btn:hover {
@@ -241,10 +245,16 @@ html, body {
     overflow-y: auto;
     padding: 2rem;
     display: none;
+    min-height: 0;
+    width: 100%;
+    box-sizing: border-box;
 }
 
 .tab-content.active {
-    display: block;
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    justify-content: flex-start;
 }
 
 .products-header, .recipes-header {
@@ -252,6 +262,75 @@ html, body {
     justify-content: space-between;
     align-items: center;
     margin-bottom: 2rem;
+    flex-wrap: wrap;
+}
+
+.search-bar {
+    margin-bottom: 1rem;
+    width: 100%;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.search-input {
+    width: 100%;
+    max-width: 100%;
+    padding: 0.9rem 1rem;
+    border-radius: var(--radius);
+    border: 1px solid var(--border);
+    font-size: 1rem;
+    background: var(--bg);
+}
+
+.product-category-chip {
+    margin-left: auto;
+    background: rgba(76, 175, 80, 0.15);
+    color: var(--text);
+    padding: 0.35rem 0.75rem;
+    border-radius: 999px;
+    font-size: 0.8rem;
+    white-space: nowrap;
+}
+
+.recipe-actions-row {
+    display: flex;
+    justify-content: flex-end;
+    margin-bottom: 1rem;
+}
+
+.quantity-control {
+    display: inline-flex;
+    gap: 0.35rem;
+    align-items: center;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 0.2rem;
+}
+
+.qty-control-btn {
+    border: none;
+    background: transparent;
+    color: var(--text);
+    padding: 0.4rem 0.7rem;
+    font-size: 1.1rem;
+    cursor: pointer;
+}
+
+.qty-control-btn:hover {
+    background: var(--border);
+}
+
+.qty-value {
+    min-width: 2rem;
+    text-align: center;
+    font-weight: 700;
+}
+
+body:not(.products-active) .sidebar {
+    display: none;
 }
 
 .products-header h2, .recipes-header h2 {
@@ -283,7 +362,7 @@ html, body {
 
 .btn-secondary {
     background-color: var(--bg);
-    color: var(--text);
+    color: var(--primary);
     border: 1px solid var(--border);
 }
 
@@ -431,6 +510,9 @@ html, body {
     overflow-y: auto;
     margin-bottom: 1rem;
     min-height: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
 }
 
 .shopping-header h2 {
@@ -465,6 +547,7 @@ html, body {
     justify-content: space-between;
     align-items: center;
     border: 1px solid var(--border);
+    transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
 }
 
 .shopping-item-name {
@@ -693,7 +776,7 @@ html, body {
 /* Responsive Design */
 @media (max-width: 1200px) {
     .products-list, .recipes-list {
-        grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+        grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
     }
 
     .shopping-list-sidebar {
@@ -781,9 +864,20 @@ html, body {
     }
 
     .shopping-list-content {
-        max-height: 240px;
+        flex: 1;
+        min-height: 0;
+        max-height: none;
         margin-bottom: 0.75rem;
     }
+
+    .tab-content {
+        padding: 1rem;
+    }
+
+    .products-list, .recipes-list {
+        gap: 0.75rem;
+    }
+}
 
     .shopping-actions {
         gap: 0.5rem;
@@ -792,6 +886,29 @@ html, body {
     .shopping-actions button {
         font-size: 0.85rem;
         padding: 0.6rem;
+    }
+
+    .tab-content {
+        padding: 1rem;
+    }
+
+    .products-list,
+    .recipes-list,
+    .shopping-list {
+        width: 100%;
+    }
+
+    .product-item,
+    .recipe-item,
+    .shopping-item {
+        width: 100%;
+        min-width: 0;
+    }
+
+    .product-item label,
+    .ingredient-check-item label,
+    .shopping-item-name {
+        min-width: 0;
     }
 }
 
