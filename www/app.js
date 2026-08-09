@@ -612,6 +612,17 @@ class ShoppingListApp {
                     this.editProduct(this.categories.find(cat => cat.name === categoryName), product);
                 });
 
+                const editBtn = document.createElement('button');
+                editBtn.type = 'button';
+                editBtn.className = 'product-edit';
+                editBtn.innerHTML = '<i class="fas fa-pen"></i>';
+                editBtn.title = 'Renommer ce produit';
+                editBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const category = this.categories.find(cat => cat.name === categoryName);
+                    if (category) this.editProduct(category, product);
+                });
+
                 const categoryChip = document.createElement('span');
                 categoryChip.className = 'product-category-chip';
                 categoryChip.textContent = categoryName;
@@ -627,6 +638,7 @@ class ShoppingListApp {
 
                 item.appendChild(checkbox);
                 item.appendChild(label);
+                item.appendChild(editBtn);
                 item.appendChild(categoryChip);
                 item.appendChild(deleteBtn);
                 list.appendChild(item);
@@ -717,6 +729,16 @@ class ShoppingListApp {
                         this.editProduct(category, product);
                     });
 
+                    const editBtn = document.createElement('button');
+                    editBtn.type = 'button';
+                    editBtn.className = 'product-edit';
+                    editBtn.innerHTML = '<i class="fas fa-pen"></i>';
+                    editBtn.title = 'Renommer ce produit';
+                    editBtn.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        this.editProduct(category, product);
+                    });
+
                     const deleteBtn = document.createElement('button');
                     deleteBtn.className = 'product-delete';
                     deleteBtn.innerHTML = '<i class="fas fa-times"></i>';
@@ -727,6 +749,7 @@ class ShoppingListApp {
 
                     item.appendChild(checkbox);
                     item.appendChild(label);
+                    item.appendChild(editBtn);
                     item.appendChild(deleteBtn);
                     grid.appendChild(item);
                 });

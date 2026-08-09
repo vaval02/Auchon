@@ -701,6 +701,25 @@ body:not(.products-active) .sidebar {
     user-select: none;
 }
 
+.product-item .product-edit {
+    background: transparent;
+    border: none;
+    color: var(--text-light);
+    cursor: pointer;
+    padding: 0.4rem;
+    border-radius: 50%;
+    transition: all 0.2s;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.product-item .product-edit:hover {
+    background-color: var(--border);
+    color: var(--primary);
+}
+
 .product-item .product-delete {
     background: transparent;
     border: none;
