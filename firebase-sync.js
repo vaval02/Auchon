@@ -151,7 +151,7 @@
         shoppingList: localData.shoppingList || {},
         lastUpdated: timestamp,
         syncedAt: firebase.firestore.FieldValue.serverTimestamp()
-      }, { merge: true });
+      });
       lastSyncTime = timestamp;
       console.log('✓ Données synchronisées vers le cloud');
     } catch (err) {
@@ -326,7 +326,7 @@
         shoppingList: payload.shoppingList || {},
         lastUpdated,
         syncedAt: firebase.firestore.FieldValue.serverTimestamp()
-      }, { merge: true });
+      });
       lastSyncTime = lastUpdated;
       console.log('Sync pushed to Firestore', { user: getUserDocId(user), lastUpdated });
     } catch (err) {
