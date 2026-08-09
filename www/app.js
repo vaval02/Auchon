@@ -455,29 +455,23 @@ class ShoppingListApp {
                 this.editCategory(index);
             });
 
-            const delBtn = document.createElement('button');
-            delBtn.className = 'category-delete';
-            delBtn.innerHTML = '<i class="fas fa-trash"></i>';
-            delBtn.title = 'Supprimer la catégorie';
-            delBtn.addEventListener('click', (e) => {
+            const addProductBtn = document.createElement('button');
+            addProductBtn.className = 'category-add-product';
+            addProductBtn.innerHTML = '<i class="fas fa-plus"></i>';
+            addProductBtn.title = 'Ajouter un produit dans cette catégorie';
+            addProductBtn.addEventListener('click', (e) => {
                 e.stopPropagation();
-                if (confirm(`Supprimer la catégorie "${category.name}" ?`)) {
-                    this.categories.splice(index, 1);
-                    if (this.currentCategory >= this.categories.length) this.currentCategory = Math.max(0, this.categories.length - 1);
-                    this.saveData();
-                    this.renderCategories();
-                    this.renderProducts();
-                }
+                this.handleAddProductToCategory(index);
             });
 
             actions.appendChild(editBtn);
-            actions.appendChild(delBtn);
+            actions.appendChild(addProductBtn);
 
             btn.appendChild(nameSpan);
-            btn.appendChild(actions);
             btn.addEventListener('click', () => this.handleCategoryClick(btn));
 
             row.appendChild(btn);
+            row.appendChild(actions);
             list.appendChild(row);
         });
     }
@@ -560,6 +554,7 @@ class ShoppingListApp {
         this.currentCategory = this.categories.length - 1;
         this.saveData();
         this.renderCategories();
+        this.renderProductsCategorySelect();
         this.renderProducts();
         this.closeModal(document.getElementById('addCategoryModal'));
     }
@@ -674,24 +669,18 @@ class ShoppingListApp {
                 this.editCategory(index);
             });
 
-            const deleteBtn = document.createElement('button');
-            deleteBtn.type = 'button';
-            deleteBtn.className = 'category-section-action-btn';
-            deleteBtn.innerHTML = '<i class="fas fa-trash"></i>';
-            deleteBtn.title = 'Supprimer la catégorie';
-            deleteBtn.addEventListener('click', (e) => {
+            const addProductSectionBtn = document.createElement('button');
+            addProductSectionBtn.type = 'button';
+            addProductSectionBtn.className = 'category-section-action-btn';
+            addProductSectionBtn.innerHTML = '<i class="fas fa-plus"></i>';
+            addProductSectionBtn.title = 'Ajouter un produit dans cette catégorie';
+            addProductSectionBtn.addEventListener('click', (e) => {
                 e.stopPropagation();
-                if (confirm(`Supprimer la catégorie "${category.name}" ?`)) {
-                    this.categories.splice(index, 1);
-                    if (this.currentCategory >= this.categories.length) this.currentCategory = Math.max(0, this.categories.length - 1);
-                    this.saveData();
-                    this.renderCategories();
-                    this.renderProducts();
-                }
+                this.handleAddProductToCategory(index);
             });
 
             headingActions.appendChild(editBtn);
-            headingActions.appendChild(deleteBtn);
+            headingActions.appendChild(addProductSectionBtn);
 
             headingRow.appendChild(heading);
             headingRow.appendChild(headingActions);
@@ -818,6 +807,19 @@ class ShoppingListApp {
             category.products = category.products.filter(p => p.id !== product.id);
             this.saveData();
             this.renderProducts();
+        }
+    }
+
+    handleAddProductToCategory(index) {
+        if (index < 0 || index >= this.categories.length) return;
+        this.currentCategory = index;
+        this.renderCategories();
+        this.renderProductsCategorySelect();
+        this.openModal('addProductModal');
+        const input = document.getElementById('productInput');
+        if (input) {
+            input.value = '';
+            input.focus();
         }
     }
 
@@ -1019,10 +1021,7 @@ class ShoppingListApp {
                     removeBtn.innerHTML = '<i class="fas fa-times"></i>';
                     removeBtn.title = 'Supprimer';
                     removeBtn.addEventListener('click', () => {
-                        delete this.shoppingList[productName];
-                        this.saveData();
-                        this.renderShoppingList();
-                        this.updateProductChecks();
+                        this.removeFromShoppingList(productName);
                     });
 
                     item.appendChild(nameSpan);
@@ -1032,6 +1031,15 @@ class ShoppingListApp {
                 });
             });
         });
+    }
+
+    removeFromShoppingList(productName) {
+        if (this.shoppingList[productName] !== undefined) {
+            delete this.shoppingList[productName];
+            this.saveData();
+            this.renderShoppingList();
+            this.updateProductChecks();
+        }
     }
 
     updateProductChecks() {
