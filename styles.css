@@ -90,6 +90,7 @@ html, body {
 
 /* Sidebar */
 .sidebar {
+    display: none;
     width: 240px;
     min-width: 220px;
     background-color: var(--bg-dark);
@@ -310,21 +311,26 @@ html, body {
     flex-wrap: wrap;
 }
 
-.search-bar {
-    margin-bottom: 1rem;
-    width: min(100%, 360px);
-    display: flex;
-    align-items: center;
-    gap: 0.45rem;
-    flex-wrap: nowrap;
-}
+    section#products-tab .products-header {
+        margin-bottom: 0;
+    }
 
-.search-input {
-    flex: 1 1 auto;
-    min-width: 0;
-    width: auto;
-    max-width: 100%;
-    padding: 0.8rem 0.95rem;
+    .search-bar {
+        margin-bottom: 1rem;
+        width: min(100%, 360px);
+        display: flex;
+        align-items: center;
+        gap: 0.45rem;
+        flex-wrap: nowrap;
+    }
+
+    #recipes-tab .recipes-header h2 {
+        display: none;
+    }
+
+    #shopping-tab .shopping-header h2,
+    #shopping-tab .shopping-header-actions > button {
+        display: none;
     border-radius: 999px;
     border: 1px solid var(--border);
     font-size: 0.95rem;
@@ -332,17 +338,14 @@ html, body {
     margin-bottom: 0;
 }
 
-.input-field.search-input {
-    width: auto;
-    margin-bottom: 0;
-}
+    .recipes-header h2 {
+        display: none;
+    }
 
-.search-actions {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.35rem;
-    flex-shrink: 0;
-}
+    #shopping-tab .shopping-header h2,
+    #shopping-tab .shopping-header-actions > button {
+        display: none;
+    }
 
 .search-btn,
 .search-clear-btn {
@@ -428,6 +431,7 @@ body:not(.products-active) .sidebar {
     margin-bottom: 1.5rem;
     padding-bottom: 1rem;
     border-bottom: 1px solid var(--border);
+    scroll-margin-top: 120px;
 }
 
 .category-section:last-child {
@@ -436,11 +440,38 @@ body:not(.products-active) .sidebar {
 
 .category-section-header {
     display: flex;
-    justify-content: flex-start;
+    justify-content: space-between;
     align-items: center;
     gap: 0.6rem;
     margin-bottom: 1rem;
     flex-wrap: wrap;
+}
+
+.category-section-actions {
+    display: inline-flex;
+    gap: 0.35rem;
+}
+
+.category-section-action-btn {
+    background: transparent;
+    border: none;
+    color: var(--text-light);
+    cursor: pointer;
+    font-size: 0.95rem;
+    padding: 0.35rem;
+    border-radius: 50%;
+    transition: background-color 0.2s;
+}
+
+.category-section-action-btn:hover {
+    background-color: rgba(0, 0, 0, 0.05);
+    color: var(--text);
+}
+
+.products-add-category-footer {
+    margin-top: 2rem;
+    display: flex;
+    justify-content: center;
 }
 
 .category-section-header h3 {
@@ -1025,6 +1056,10 @@ body:not(.products-active) .sidebar {
         z-index: 20;
         border-top: 1px solid var(--border);
         background-color: var(--bg-dark);
+        display: none !important;
+    }
+
+    .products-toolbar.active {
         display: flex !important;
     }
 

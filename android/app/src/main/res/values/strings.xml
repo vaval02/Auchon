@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='utf-8'?>
 <resources>
-    <string name="app_name">MaListeDeCourses</string>
-    <string name="title_activity_main">MaListeDeCourses</string>
+    <string name="app_name">Auchon</string>
+    <string name="title_activity_main">Auchon</string>
     <string name="package_name">com.valentine.courses</string>
     <string name="custom_url_scheme">com.valentine.courses</string>
 </resources>

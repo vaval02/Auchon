@@ -2,7 +2,7 @@
 
 class ShoppingListApp {
     constructor() {
-        this.currentCategory = 0;
+        this.currentCategory = -1;
         this.shoppingList = {};
         this.currentRecipeForDetails = null;
         this.recipeIngredientsToAdd = [];
@@ -502,41 +502,37 @@ class ShoppingListApp {
         const select = document.getElementById('productsCategorySelect');
         if (!select) return;
 
-        const currentValue = select.value;
-        select.innerHTML = '<option value="all">Toutes</option>';
+        select.innerHTML = '<option value="all" selected>Toutes</option>';
 
         this.categories.forEach(category => {
             const option = document.createElement('option');
             option.value = category.id;
             option.textContent = category.name;
-            if (currentValue === category.id || (currentValue === 'all' && this.currentCategory === this.categories.indexOf(category))) {
-                option.selected = true;
-            }
             select.appendChild(option);
         });
-
-        if (this.currentCategory < 0 || this.currentCategory >= this.categories.length) {
-            select.value = 'all';
-        } else {
-            const currentCategory = this.categories[this.currentCategory];
-            if (currentCategory) {
-                select.value = currentCategory.id;
-            }
-        }
     }
 
     handleProductsCategorySelect(select) {
         const value = select.value;
-        this.currentCategory = value === 'all' ? -1 : this.categories.findIndex(category => category.id === value);
-        if (this.currentCategory < 0) {
-            this.currentCategory = -1;
+        const categoryIndex = value === 'all' ? -1 : this.categories.findIndex(category => category.id === value);
+        if (categoryIndex >= 0) {
+            this.scrollToCategoryIndex(categoryIndex);
         }
-        this.renderCategories();
-        this.renderProducts();
+        select.value = 'all';
     }
 
     scrollToCurrentCategory() {
         const category = this.categories[this.currentCategory];
+        if (!category) return;
+
+        const section = document.getElementById(`category-${category.id}`);
+        if (section) {
+            section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+    }
+
+    scrollToCategoryIndex(index) {
+        const category = this.categories[index];
         if (!category) return;
 
         const section = document.getElementById(`category-${category.id}`);
@@ -581,7 +577,6 @@ class ShoppingListApp {
 
         if (searchQuery) {
             if (titleEl) titleEl.textContent = `Résultats pour « ${searchQuery} »`;
-            if (toc) toc.parentElement.style.display = 'none';
 
             const matches = [];
             this.categories.forEach(category => {
@@ -646,10 +641,14 @@ class ShoppingListApp {
         }
 
         if (titleEl) titleEl.textContent = 'Tous les produits';
-        if (toc && toc.parentElement) toc.parentElement.style.display = 'block';
 
-        const listContainer = document.querySelector('.products-list-container');
-        let closestSection = null;
+        if (this.categories.length === 0) {
+            const emptySection = document.createElement('div');
+            emptySection.className = 'empty-state';
+            emptySection.textContent = 'Aucun produit disponible';
+            list.appendChild(emptySection);
+            return;
+        }
 
         this.categories.forEach((category, index) => {
             const section = document.createElement('section');
@@ -662,20 +661,40 @@ class ShoppingListApp {
             const heading = document.createElement('h3');
             heading.textContent = category.name;
 
-            const addBtn = document.createElement('button');
-            addBtn.className = 'category-add-product-btn btn-small btn-secondary';
-            addBtn.type = 'button';
-            addBtn.innerHTML = '<i class="fas fa-plus"></i> Produit';
-            addBtn.title = `Ajouter un produit dans ${category.name}`;
-            addBtn.addEventListener('click', (e) => {
+            const headingActions = document.createElement('div');
+            headingActions.className = 'category-section-actions';
+
+            const editBtn = document.createElement('button');
+            editBtn.type = 'button';
+            editBtn.className = 'category-section-action-btn';
+            editBtn.innerHTML = '<i class="fas fa-pen"></i>';
+            editBtn.title = 'Renommer la catégorie';
+            editBtn.addEventListener('click', (e) => {
                 e.stopPropagation();
-                this.currentCategory = selectedCategoryIndex === null ? index : selectedCategoryIndex;
-                this.renderCategories();
-                this.openModal('addProductModal');
+                this.editCategory(index);
             });
 
+            const deleteBtn = document.createElement('button');
+            deleteBtn.type = 'button';
+            deleteBtn.className = 'category-section-action-btn';
+            deleteBtn.innerHTML = '<i class="fas fa-trash"></i>';
+            deleteBtn.title = 'Supprimer la catégorie';
+            deleteBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                if (confirm(`Supprimer la catégorie "${category.name}" ?`)) {
+                    this.categories.splice(index, 1);
+                    if (this.currentCategory >= this.categories.length) this.currentCategory = Math.max(0, this.categories.length - 1);
+                    this.saveData();
+                    this.renderCategories();
+                    this.renderProducts();
+                }
+            });
+
+            headingActions.appendChild(editBtn);
+            headingActions.appendChild(deleteBtn);
+
             headingRow.appendChild(heading);
-            headingRow.appendChild(addBtn);
+            headingRow.appendChild(headingActions);
             section.appendChild(headingRow);
 
             if (category.products.length === 0) {
@@ -727,26 +746,19 @@ class ShoppingListApp {
             }
 
             list.appendChild(section);
-
-            if (toc) {
-                const itemLink = document.createElement('a');
-                itemLink.href = `#category-${category.id}`;
-                itemLink.textContent = category.name;
-                itemLink.dataset.target = section.id;
-                itemLink.addEventListener('click', (e) => {
-                    e.preventDefault();
-                    section.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                });
-
-                const li = document.createElement('li');
-                li.appendChild(itemLink);
-                toc.appendChild(li);
-            }
         });
 
-        if (toc && listContainer) {
-            this.observeProductSections(listContainer);
-        }
+        const footer = document.createElement('div');
+        footer.className = 'products-add-category-footer';
+        const addCategoryButton = document.createElement('button');
+        addCategoryButton.type = 'button';
+        addCategoryButton.className = 'btn-secondary add-category-footer-btn';
+        addCategoryButton.textContent = 'Ajouter une catégorie';
+        addCategoryButton.addEventListener('click', () => {
+            this.openModal('addCategoryModal');
+        });
+        footer.appendChild(addCategoryButton);
+        list.appendChild(footer);
     }
 
     observeProductSections(listContainer) {
