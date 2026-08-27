@@ -40,7 +40,6 @@ class ShoppingListApp {
             {
                 id: 'santé',
                 name: 'Santé et hygiène',
-                autoSort: true,
                 products: [
                     { id: 1, name: 'Papier toilette' },
                     { id: 2, name: 'Sopalin' },
@@ -52,7 +51,6 @@ class ShoppingListApp {
             {
                 id: 'fruits-legumes',
                 name: 'Fruits et légumes',
-                autoSort: true,
                 products: [
                     { id: 6, name: 'Carottes' },
                     { id: 7, name: 'Courgettes' },
@@ -66,7 +64,6 @@ class ShoppingListApp {
             {
                 id: 'viandes-poissons',
                 name: 'Viandes et poissons',
-                autoSort: true,
                 products: [
                     { id: 13, name: 'Viande hachée' },
                     { id: 14, name: 'Poulet' },
@@ -78,7 +75,6 @@ class ShoppingListApp {
             {
                 id: 'produits-laitiers',
                 name: 'Produits laitiers',
-                autoSort: true,
                 products: [
                     { id: 18, name: 'Lait' },
                     { id: 19, name: 'Yaourt' },
@@ -90,7 +86,6 @@ class ShoppingListApp {
             {
                 id: 'epicerie',
                 name: 'Épicerie',
-                autoSort: true,
                 products: [
                     { id: 23, name: 'Pâtes' },
                     { id: 24, name: 'Riz' },
@@ -104,7 +99,6 @@ class ShoppingListApp {
             {
                 id: 'boissons',
                 name: 'Boissons',
-                autoSort: true,
                 products: [
                     { id: 30, name: 'Eau minérale' },
                     { id: 31, name: 'Jus d\'orange' },
@@ -116,7 +110,6 @@ class ShoppingListApp {
             {
                 id: 'surgeles',
                 name: 'Surgelés',
-                autoSort: true,
                 products: [
                     { id: 35, name: 'Glaçons' },
                     { id: 36, name: 'Frites' },
@@ -127,7 +120,6 @@ class ShoppingListApp {
             {
                 id: 'autres',
                 name: 'Autres',
-                autoSort: true,
                 products: [
                     { id: 39, name: 'Pain' },
                     { id: 40, name: 'Biscuits' }
@@ -221,16 +213,13 @@ class ShoppingListApp {
 
     init() {
         this.setupEventListeners();
-        document.body.classList.add('products-active');
         this.renderCategories();
         this.renderProductsCategorySelect();
-        this.populateProductCategorySelect();
-        this.loadMenu();
-        this.renderMenu();
         this.updateProductsToolbarVisibility();
         this.renderProducts();
         this.renderRecipes();
         this.renderShoppingList();
+        document.body.classList.add('products-active');
         // listen for remote updates applied by sync bridge
         window.addEventListener('app:remoteUpdate', () => {
             this.loadOrInitializeData();
@@ -246,11 +235,6 @@ class ShoppingListApp {
         document.querySelectorAll('.tab-btn').forEach(btn => {
             btn.addEventListener('click', (e) => this.handleTabClick(e));
         });
-
-        const categorySelect = document.getElementById('productsCategorySelect');
-        if (categorySelect) {
-            categorySelect.addEventListener('change', () => this.handleProductsCategorySelect(categorySelect));
-        }
 
         // Category buttons
         document.addEventListener('click', (e) => {
@@ -387,7 +371,17 @@ class ShoppingListApp {
             });
         }
 
+        const categorySelect = document.getElementById('productsCategorySelect');
+        if (categorySelect) {
+            categorySelect.addEventListener('change', () => this.handleProductsCategorySelect(categorySelect));
+        }
 
+        const selectAllButton = document.getElementById('selectAllIngredientsBtn');
+        if (selectAllButton) {
+            selectAllButton.addEventListener('click', () => {
+                this.toggleSelectAllIngredients();
+            });
+        }
 
         // Edit category & recipe modal actions
         document.getElementById('confirmEditCategoryBtn').addEventListener('click', () => {
@@ -404,41 +398,6 @@ class ShoppingListApp {
         document.getElementById('confirmEditRecipeBtn').addEventListener('click', () => {
             this.saveEditedRecipe();
         });
-
-        // Unknown ingredient modal confirmation
-        const confirmUnknownBtn = document.getElementById('confirmUnknownIngredientBtn');
-        if (confirmUnknownBtn) {
-            confirmUnknownBtn.addEventListener('click', () => {
-                const modal = document.getElementById('unknownIngredientModal');
-                const ingredientName = modal.dataset.ingredientName || '';
-                const sel = document.getElementById('unknownIngredientCategorySelect');
-                const catId = sel?.value;
-                const category = this.categories.find(c => c.id === catId) || this.categories[0];
-                const newProduct = { id: this.getNextProductId(), name: ingredientName };
-                if (!category.products) category.products = [];
-                category.products.push(newProduct);
-                this.saveData();
-                // If we have a target row id, try to update the input
-                const targetRowId = modal.dataset.targetRowId;
-                if (targetRowId) {
-                    const row = document.querySelector(`[data-row-id="${targetRowId}"]`);
-                    if (row) {
-                        const input = row.querySelector('input:first-child');
-                        if (input) input.value = newProduct.name;
-                    }
-                }
-                this.closeModal(modal);
-                this.renderProducts();
-            });
-        }
-
-        // Weekly menu save button
-        const saveMenuBtn = document.getElementById('saveMenuBtn');
-        if (saveMenuBtn) {
-            saveMenuBtn.addEventListener('click', () => {
-                this.saveMenu();
-            });
-        }
 
         // Recipe details modal confirmation
         document.getElementById('addRecipeIngredientsBtn').addEventListener('click', () => {
@@ -459,7 +418,6 @@ class ShoppingListApp {
             document.getElementById('categoryInput').focus();
         } else if (modalId === 'addProductModal') {
             document.getElementById('productInput').value = '';
-            this.populateProductCategorySelect();
             document.getElementById('productInput').focus();
         } else if (modalId === 'addRecipeModal') {
             document.getElementById('recipeNameInput').value = '';
@@ -470,288 +428,487 @@ class ShoppingListApp {
     closeModal(modal) {
         modal.classList.remove('active');
     }
-                        ]
+
+    // ==================== CATEGORY MANAGEMENT ====================
+
+    renderCategories() {
+        const list = document.getElementById('categoriesList');
+        list.innerHTML = '';
+
+        this.categories.forEach((category, index) => {
+            const row = document.createElement('div');
+            row.className = 'category-row';
+
+            const btn = document.createElement('button');
+            btn.className = `category-btn ${index === this.currentCategory ? 'active' : ''}`;
+            btn.dataset.index = index;
+
+            const nameSpan = document.createElement('span');
+            nameSpan.textContent = category.name;
+            nameSpan.style.pointerEvents = 'none';
+
+            const actions = document.createElement('div');
+            actions.className = 'category-actions';
+
+            const editBtn = document.createElement('button');
+            editBtn.className = 'category-edit';
+            editBtn.innerHTML = '<i class="fas fa-pen"></i>';
+            editBtn.title = 'Renommer la catégorie';
+            editBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                this.editCategory(index);
+            });
+
+            const addProductBtn = document.createElement('button');
+            addProductBtn.className = 'category-add-product';
+            addProductBtn.innerHTML = '<i class="fas fa-plus"></i>';
+            addProductBtn.title = 'Ajouter un produit dans cette catégorie';
+            addProductBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                this.handleAddProductToCategory(index);
+            });
+
+            actions.appendChild(editBtn);
+            actions.appendChild(addProductBtn);
+
+            btn.appendChild(nameSpan);
+            btn.addEventListener('click', () => this.handleCategoryClick(btn));
+
+            row.appendChild(btn);
+            row.appendChild(actions);
+            list.appendChild(row);
+        });
+    }
+
+    handleCategoryClick(btn) {
+        this.currentCategory = parseInt(btn.dataset.index);
+        document.querySelectorAll('.category-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        this.renderProductsCategorySelect();
+        this.renderProducts();
+        this.scrollToCurrentCategory();
+    }
+
+    updateProductsToolbarVisibility(tabName = 'products') {
+        const toolbar = document.getElementById('productsToolbar');
+        if (toolbar) {
+            toolbar.classList.toggle('active', tabName === 'products');
+        }
+    }
+
+    renderProductsCategorySelect() {
+        const select = document.getElementById('productsCategorySelect');
+        if (!select) return;
+
+        select.innerHTML = '<option value="all" selected>Toutes</option>';
+
+        this.categories.forEach(category => {
+            const option = document.createElement('option');
+            option.value = category.id;
+            option.textContent = category.name;
+            select.appendChild(option);
+        });
+    }
+
+    handleProductsCategorySelect(select) {
+        const value = select.value;
+        const categoryIndex = value === 'all' ? -1 : this.categories.findIndex(category => category.id === value);
+        if (categoryIndex >= 0) {
+            this.scrollToCategoryIndex(categoryIndex);
+        }
+        select.value = 'all';
+    }
+
+    scrollToCurrentCategory() {
+        const category = this.categories[this.currentCategory];
+        if (!category) return;
+
+        const section = document.getElementById(`category-${category.id}`);
+        if (section) {
+            section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+    }
+
+    scrollToCategoryIndex(index) {
+        const category = this.categories[index];
+        if (!category) return;
+
+        const section = document.getElementById(`category-${category.id}`);
+        if (section) {
+            section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+    }
+
+    addCategory() {
+        const input = document.getElementById('categoryInput');
+        const name = input.value.trim();
+
+        if (!name) {
+            alert('Veuillez entrer un nom de catégorie');
+            return;
+        }
+
+        const newCategory = {
+            id: 'custom-' + Date.now(),
+            name: name,
+            products: []
+        };
+
+        this.categories.push(newCategory);
+        this.currentCategory = this.categories.length - 1;
+        this.saveData();
+        this.renderCategories();
+        this.renderProductsCategorySelect();
+        this.renderProducts();
+        this.closeModal(document.getElementById('addCategoryModal'));
+    }
+
+    // ==================== PRODUCT MANAGEMENT ====================
+
+    renderProducts() {
+        const list = document.getElementById('productsList');
+        list.innerHTML = '';
+
+        const searchQuery = document.getElementById('productSearchInput')?.value.trim().toLowerCase();
+        if (searchQuery) {
+            const matches = [];
+
+            this.categories.forEach(category => {
+                category.products.forEach(product => {
+                    if (product.name.toLowerCase().includes(searchQuery)) {
+                        matches.push({ product, categoryName: category.name });
                     }
-                ];
+                });
+            });
+
+            if (matches.length === 0) {
+                const noResult = document.createElement('div');
+                noResult.className = 'empty-state';
+                noResult.textContent = `Aucun produit trouvé pour « ${searchQuery} »`;
+                list.appendChild(noResult);
+                return;
             }
 
-            saveData() {
-                const data = {
-                    categories: this.categories,
-                    recipes: this.recipes,
-                    shoppingList: this.shoppingList
+            matches.forEach(({ product, categoryName }) => {
+                const item = document.createElement('div');
+                item.className = 'product-item';
+
+                const checkbox = document.createElement('input');
+                checkbox.type = 'checkbox';
+                checkbox.id = `product-${product.id}`;
+                checkbox.dataset.productName = product.name;
+                checkbox.checked = this.shoppingList[product.name] !== undefined;
+                checkbox.addEventListener('change', () => {
+                    this.toggleProduct(product.name, checkbox.checked, categoryName);
+                });
+
+                const label = document.createElement('label');
+                label.htmlFor = `product-${product.id}`;
+                label.textContent = product.name;
+                label.style.cursor = 'text';
+                label.title = 'Double-cliquez pour éditer';
+                label.addEventListener('dblclick', () => {
+                    this.editProduct(this.categories.find(cat => cat.name === categoryName), product);
+                });
+
+                const editBtn = document.createElement('button');
+                editBtn.type = 'button';
+                editBtn.className = 'product-edit';
+                editBtn.innerHTML = '<i class="fas fa-pen"></i>';
+                editBtn.title = 'Renommer ce produit';
+                editBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const category = this.categories.find(cat => cat.name === categoryName);
+                    if (category) this.editProduct(category, product);
+                });
+
+                const categoryChip = document.createElement('span');
+                categoryChip.className = 'product-category-chip';
+                categoryChip.textContent = categoryName;
+
+                const deleteBtn = document.createElement('button');
+                deleteBtn.className = 'product-delete';
+                deleteBtn.innerHTML = '<i class="fas fa-times"></i>';
+                deleteBtn.title = 'Supprimer ce produit';
+                deleteBtn.addEventListener('click', () => {
+                    const category = this.categories.find(cat => cat.name === categoryName);
+                    if (category) this.deleteProduct(category, product);
+                });
+
+                item.appendChild(checkbox);
+                item.appendChild(label);
+                item.appendChild(editBtn);
+                item.appendChild(categoryChip);
+                item.appendChild(deleteBtn);
+                list.appendChild(item);
+            });
+
+            return;
+        }
+
+        if (this.categories.length === 0) {
+            const emptySection = document.createElement('div');
+            emptySection.className = 'empty-state';
+            emptySection.textContent = 'Aucun produit disponible';
+            list.appendChild(emptySection);
+            return;
+        }
+
+        this.categories.forEach((category, index) => {
+            const section = document.createElement('section');
+            section.className = 'category-section';
+            section.id = `category-${category.id}`;
+
+            const headingRow = document.createElement('div');
+            headingRow.className = 'category-section-header';
+
+            const heading = document.createElement('h3');
+            heading.textContent = category.name;
+
+            const headingActions = document.createElement('div');
+            headingActions.className = 'category-section-actions';
+
+            const editBtn = document.createElement('button');
+            editBtn.type = 'button';
+            editBtn.className = 'category-section-action-btn';
+            editBtn.innerHTML = '<i class="fas fa-pen"></i>';
+            editBtn.title = 'Renommer la catégorie';
+            editBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                this.editCategory(index);
+            });
+
+            const addProductSectionBtn = document.createElement('button');
+            addProductSectionBtn.type = 'button';
+            addProductSectionBtn.className = 'category-section-action-btn';
+            addProductSectionBtn.innerHTML = '<i class="fas fa-plus"></i>';
+            addProductSectionBtn.title = 'Ajouter un produit dans cette catégorie';
+            addProductSectionBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                this.handleAddProductToCategory(index);
+            });
+
+            headingActions.appendChild(editBtn);
+            headingActions.appendChild(addProductSectionBtn);
+
+            headingRow.appendChild(heading);
+            headingRow.appendChild(headingActions);
+            section.appendChild(headingRow);
+
+            if (category.products.length === 0) {
+                const emptySection = document.createElement('div');
+                emptySection.className = 'category-empty-state';
+                emptySection.textContent = 'Aucun produit dans cette catégorie';
+                section.appendChild(emptySection);
+            } else {
+                const grid = document.createElement('div');
+                grid.className = 'category-product-grid';
+
+                category.products.forEach(product => {
+                    const item = document.createElement('div');
+                    item.className = 'product-item';
+
+                    const checkbox = document.createElement('input');
+                    checkbox.type = 'checkbox';
+                    checkbox.id = `product-${product.id}`;
+                    checkbox.dataset.productName = product.name;
+                    checkbox.checked = this.shoppingList[product.name] !== undefined;
+                    checkbox.addEventListener('change', () => {
+                        this.toggleProduct(product.name, checkbox.checked, category.name);
+                    });
+
+                    const label = document.createElement('label');
+                    label.htmlFor = `product-${product.id}`;
+                    label.textContent = product.name;
+                    label.style.cursor = 'text';
+                    label.title = 'Double-cliquez pour éditer';
+                    label.addEventListener('dblclick', () => {
+                        this.editProduct(category, product);
+                    });
+
+                    const editBtn = document.createElement('button');
+                    editBtn.type = 'button';
+                    editBtn.className = 'product-edit';
+                    editBtn.innerHTML = '<i class="fas fa-pen"></i>';
+                    editBtn.title = 'Renommer ce produit';
+                    editBtn.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        this.editProduct(category, product);
+                    });
+
+                    const deleteBtn = document.createElement('button');
+                    deleteBtn.className = 'product-delete';
+                    deleteBtn.innerHTML = '<i class="fas fa-times"></i>';
+                    deleteBtn.title = 'Supprimer ce produit';
+                    deleteBtn.addEventListener('click', () => {
+                        this.deleteProduct(category, product);
+                    });
+
+                    item.appendChild(checkbox);
+                    item.appendChild(label);
+                    item.appendChild(editBtn);
+                    item.appendChild(deleteBtn);
+                    grid.appendChild(item);
+                });
+
+                section.appendChild(grid);
+            }
+
+            list.appendChild(section);
+        });
+
+        const footer = document.createElement('div');
+        footer.className = 'products-add-category-footer';
+        const addCategoryButton = document.createElement('button');
+        addCategoryButton.type = 'button';
+        addCategoryButton.className = 'btn-secondary add-category-footer-btn';
+        addCategoryButton.textContent = 'Ajouter une catégorie';
+        addCategoryButton.addEventListener('click', () => {
+            this.openModal('addCategoryModal');
+        });
+        footer.appendChild(addCategoryButton);
+        list.appendChild(footer);
+    }
+
+    addProduct() {
+        const input = document.getElementById('productInput');
+        const name = input.value.trim();
+
+        if (!name) {
+            alert('Veuillez entrer un nom de produit');
+            return;
+        }
+
+        const category = this.categories[this.currentCategory];
+        const newProduct = {
+            id: this.getNextProductId(),
+            name: name
+        };
+
+        category.products.push(newProduct);
+        this.saveData();
+        this.renderProducts();
+        this.closeModal(document.getElementById('addProductModal'));
+    }
+
+    deleteProduct(category, product) {
+        if (confirm(`Supprimer "${product.name}" ?`)) {
+            category.products = category.products.filter(p => p.id !== product.id);
+            this.saveData();
+            this.renderProducts();
+        }
+    }
+
+    handleAddProductToCategory(index) {
+        if (index < 0 || index >= this.categories.length) return;
+        this.currentCategory = index;
+        this.renderCategories();
+        this.renderProductsCategorySelect();
+        this.openModal('addProductModal');
+        const input = document.getElementById('productInput');
+        if (input) {
+            input.value = '';
+            input.focus();
+        }
+    }
+
+    editProduct(category, product) {
+        this.currentEditingProduct = product;
+        this.currentEditingCategory = category;
+        document.getElementById('editProductInput').value = product.name;
+        this.openModal('editProductModal');
+        document.getElementById('editProductInput').focus();
+        document.getElementById('editProductInput').select();
+    }
+
+    saveProductEdit() {
+        const newName = document.getElementById('editProductInput').value.trim();
+
+        if (!newName) {
+            alert('Veuillez entrer un nom de produit');
+            return;
+        }
+
+        if (!this.currentEditingProduct || !this.currentEditingCategory) {
+            return;
+        }
+
+        const oldName = this.currentEditingProduct.name;
+        this.currentEditingProduct.name = newName;
+
+        // Update shopping list if the product was there
+        if (this.shoppingList[oldName]) {
+            const data = this.shoppingList[oldName];
+            delete this.shoppingList[oldName];
+            this.shoppingList[newName] = data;
+        }
+
+        this.saveData();
+        this.renderProducts();
+        this.renderShoppingList();
+        this.closeModal(document.getElementById('editProductModal'));
+        this.currentEditingProduct = null;
+        this.currentEditingCategory = null;
+    }
+
+    // ==================== SHOPPING LIST MANAGEMENT ====================
+
+    toggleProduct(productName, checked, categoryName) {
+        if (checked) {
+            if (this.shoppingList[productName] === undefined) {
+                this.shoppingList[productName] = {
+                    quantity: 1,
+                    source: 'manual',
+                    category: categoryName || this.findCategoryName(productName) || 'Autres'
                 };
-                const lastUpdated = Date.now();
-                localStorage.setItem('shoppingListData', JSON.stringify(data));
-                localStorage.setItem('shoppingListLastUpdated', lastUpdated.toString());
-                // Dispatch event so sync bridge can push to cloud if authenticated
-                try {
-                    window.dispatchEvent(new CustomEvent('app:save', {
-                        detail: {
-                            payload: data,
-                            lastUpdated
-                        }
-                    }));
-                } catch (e) {
-                    console.warn('Could not dispatch app:save event', e);
-                }
+            } else {
+                this.shoppingList[productName].quantity += 1;
             }
+        } else {
+            delete this.shoppingList[productName];
+        }
+        this.saveData();
+        this.renderShoppingList();
+        this.updateProductChecks();
+    }
 
-            // ==================== INITIALIZATION ====================
+    addToShoppingList(productName, quantity = 1, source = 'recipe') {
+        const categoryName = this.findCategoryName(productName) || 'Autres';
+        if (this.shoppingList[productName]) {
+            this.shoppingList[productName].quantity += quantity;
+        } else {
+            this.shoppingList[productName] = {
+                quantity: quantity,
+                source: source,
+                category: categoryName
+            };
+        }
+        this.saveData();
+        this.renderShoppingList();
+        this.updateProductChecks();
+    }
 
-            init() {
-                this.setupEventListeners();
-                document.body.classList.add('products-active');
-                this.renderCategories();
-                this.renderProductsCategorySelect();
-                this.populateProductCategorySelect();
-                this.loadMenu();
-                this.renderMenu();
-                this.updateProductsToolbarVisibility();
-                this.renderProducts();
-                this.renderRecipes();
-                this.renderShoppingList();
-                // listen for remote updates applied by sync bridge
-                window.addEventListener('app:remoteUpdate', () => {
-                    this.loadOrInitializeData();
-                    this.renderCategories();
-                    this.renderProducts();
-                    this.renderRecipes();
-                    this.renderShoppingList();
-                });
-            }
+    findCategoryName(productName) {
+        const category = this.categories.find(cat => cat.products.some(product => product.name === productName));
+        return category ? category.name : null;
+    }
 
-            setupEventListeners() {
-                // Tab navigation
-                document.querySelectorAll('.tab-btn').forEach(btn => {
-                    btn.addEventListener('click', (e) => this.handleTabClick(e));
-                });
+    getNextProductId() {
+        const allIds = this.categories.flatMap(category => category.products.map(product => product.id));
+        return Math.max(...allIds, 0) + 1;
+    }
 
-                const categorySelect = document.getElementById('productsCategorySelect');
-                if (categorySelect) {
-                    categorySelect.addEventListener('change', () => this.handleProductsCategorySelect(categorySelect));
-                }
+    parseIngredientQuantity(quantity) {
+        if (typeof quantity === 'number') return quantity;
+        const match = String(quantity).trim().match(/^(\d+)\b/);
+        return match ? parseInt(match[1], 10) : 1;
+    }
 
-                // Category buttons
-                document.addEventListener('click', (e) => {
-                    if (e.target.classList.contains('category-btn')) {
-                        this.handleCategoryClick(e.target);
-                    }
-                });
-
-                // Modals
-                document.querySelectorAll('.modal-close').forEach(btn => {
-                    btn.addEventListener('click', (e) => {
-                        if (e.target.classList.contains('modal-close')) {
-                            this.closeModal(e.target.closest('.modal'));
-                        }
-                    });
-                });
-
-                // Modal background click
-                document.querySelectorAll('.modal').forEach(modal => {
-                    modal.addEventListener('click', (e) => {
-                        if (e.target === modal) {
-                            this.closeModal(modal);
-                        }
-                    });
-                });
-
-                // Add category
-                document.getElementById('addCategoryBtn').addEventListener('click', () => {
-                    this.openModal('addCategoryModal');
-                });
-
-                document.getElementById('confirmCategoryBtn').addEventListener('click', () => {
-                    this.addCategory();
-                });
-
-                document.getElementById('categoryInput').addEventListener('keypress', (e) => {
-                    if (e.key === 'Enter') this.addCategory();
-                });
-
-                // Add product
-                const addProductBtn = document.getElementById('addProductBtn');
-                if (addProductBtn) {
-                    addProductBtn.addEventListener('click', () => {
-                        this.openModal('addProductModal');
-                    });
-                }
-
-                document.getElementById('confirmProductBtn').addEventListener('click', () => {
-                    this.addProduct();
-                });
-
-                document.getElementById('productInput').addEventListener('keypress', (e) => {
-                    if (e.key === 'Enter') this.addProduct();
-                });
-
-                // Add recipe
-                document.getElementById('addRecipeBtn').addEventListener('click', () => {
-                    this.openModal('addRecipeModal');
-                    this.addIngredientInputRow();
-                });
-
-                document.getElementById('addIngredientBtn').addEventListener('click', () => {
-                    this.addIngredientInputRow();
-                });
-
-                const selectAllIngredientsBtn = document.getElementById('selectAllIngredientsBtn');
-                if (selectAllIngredientsBtn) {
-                    selectAllIngredientsBtn.addEventListener('click', () => {
-                        this.toggleSelectAllIngredients();
-                    });
-                }
-
-                document.getElementById('confirmRecipeBtn').addEventListener('click', () => {
-                    this.addRecipe();
-                });
-
-                document.getElementById('recipeNameInput').addEventListener('keypress', (e) => {
-                    if (e.key === 'Enter') this.addRecipe();
-                });
-
-                // Edit product
-                document.getElementById('confirmEditProductBtn').addEventListener('click', () => {
-                    this.saveProductEdit();
-                });
-
-                document.getElementById('editProductInput').addEventListener('keypress', (e) => {
-                    if (e.key === 'Enter') this.saveProductEdit();
-                });
-
-                // Shopping list actions
-                document.getElementById('clearListBtn').addEventListener('click', () => {
-                    if (confirm('Vider la liste de courses ?')) {
-                        this.shoppingList = {};
-                        this.saveData();
-                        this.renderShoppingList();
-                        this.updateProductChecks();
-                    }
-                });
-
-                // clear button in shopping tab (mobile)
-                const clearTabBtn = document.getElementById('clearListBtnTab');
-                if (clearTabBtn) {
-                    clearTabBtn.addEventListener('click', () => {
-                        if (confirm('Vider la liste de courses ?')) {
-                            this.shoppingList = {};
-                            this.saveData();
-                            this.renderShoppingList();
-                            this.updateProductChecks();
-                        }
-                    });
-                }
-
-                const searchInput = document.getElementById('productSearchInput');
-                const searchBtn = document.getElementById('productSearchBtn');
-                const clearSearchBtn = document.getElementById('productSearchClearBtn');
-
-                if (searchInput) {
-                    searchInput.addEventListener('input', () => this.renderProducts());
-                    searchInput.addEventListener('search', () => this.renderProducts());
-                }
-
-                if (searchBtn) {
-                    searchBtn.addEventListener('click', () => this.renderProducts());
-                }
-
-                if (clearSearchBtn) {
-                    clearSearchBtn.addEventListener('click', (event) => {
-                        event.stopPropagation();
-                        if (searchInput) {
-                            searchInput.value = '';
-                            searchInput.focus();
-                        }
-                        this.renderProducts();
-                    });
-                }
-
-
-
-                // Edit category & recipe modal actions
-                document.getElementById('confirmEditCategoryBtn').addEventListener('click', () => {
-                    this.saveCategoryEdit();
-                });
-                document.getElementById('deleteCategoryBtn').addEventListener('click', () => {
-                    this.deleteCategoryConfirmed();
-                });
-
-                document.getElementById('addIngredientToRecipeBtn').addEventListener('click', () => {
-                    this.addIngredientToRecipeRow();
-                });
-
-                document.getElementById('confirmEditRecipeBtn').addEventListener('click', () => {
-                    this.saveEditedRecipe();
-                });
-
-                // Unknown ingredient modal confirmation
-                const confirmUnknownBtn = document.getElementById('confirmUnknownIngredientBtn');
-                if (confirmUnknownBtn) {
-                    confirmUnknownBtn.addEventListener('click', () => {
-                        const modal = document.getElementById('unknownIngredientModal');
-                        const ingredientName = modal.dataset.ingredientName || '';
-                        const sel = document.getElementById('unknownIngredientCategorySelect');
-                        const catId = sel?.value;
-                        const category = this.categories.find(c => c.id === catId) || this.categories[0];
-                        const newProduct = { id: this.getNextProductId(), name: ingredientName };
-                        if (!category.products) category.products = [];
-                        category.products.push(newProduct);
-                        this.saveData();
-                        // If we have a target row id, try to update the input
-                        const targetRowId = modal.dataset.targetRowId;
-                        if (targetRowId) {
-                            const row = document.querySelector(`[data-row-id="${targetRowId}"]`);
-                            if (row) {
-                                const input = row.querySelector('input:first-child');
-                                if (input) input.value = newProduct.name;
-                            }
-                        }
-                        this.closeModal(modal);
-                        this.renderProducts();
-                    });
-                }
-
-                // Weekly menu save button
-                const saveMenuBtn = document.getElementById('saveMenuBtn');
-                if (saveMenuBtn) {
-                    saveMenuBtn.addEventListener('click', () => {
-                        this.saveMenu();
-                    });
-                }
-
-                // Recipe details modal confirmation
-                document.getElementById('addRecipeIngredientsBtn').addEventListener('click', () => {
-                    this.confirmRecipeIngredients();
-                });
-
-            }
-
-            // ==================== MODAL MANAGEMENT ====================
-
-            openModal(modalId) {
-                const modal = document.getElementById(modalId);
-                modal.classList.add('active');
-        
-                // Clear inputs when opening
-                if (modalId === 'addCategoryModal') {
-                    document.getElementById('categoryInput').value = '';
-                    document.getElementById('categoryInput').focus();
-                } else if (modalId === 'addProductModal') {
-                    document.getElementById('productInput').value = '';
-                    this.populateProductCategorySelect();
-                    document.getElementById('productInput').focus();
-                } else if (modalId === 'addRecipeModal') {
-                    document.getElementById('recipeNameInput').value = '';
-                    document.getElementById('ingredientsList').innerHTML = '';
-                }
-            }
-
-            closeModal(modal) {
-                modal.classList.remove('active');
-            }
-
-            // ==================== CATEGORY MANAGEMENT ====================
+    getShoppingListGroups() {
+        const grouped = {};
+        Object.entries(this.shoppingList).forEach(([productName, data]) => {
+            const categoryName = data.category || this.findCategoryName(productName) || 'Autres';
+            if (!grouped[categoryName]) grouped[categoryName] = [];
             grouped[categoryName].push({ productName, data });
         });
 
