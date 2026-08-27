@@ -821,6 +821,7 @@ body:not(.products-active) .sidebar {
     max-width: 500px;
     box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
     overflow: hidden;
+    max-height: 92vh;
 }
 
 .modal-header {
@@ -851,6 +852,9 @@ body:not(.products-active) .sidebar {
 
 .modal-body {
     padding: 1.5rem;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    max-height: calc(92vh - 120px);
 }
 
 .modal-footer {

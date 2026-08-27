@@ -246,9 +246,8 @@ class ShoppingListApp {
         // Modals
         document.querySelectorAll('.modal-close').forEach(btn => {
             btn.addEventListener('click', (e) => {
-                if (e.target.classList.contains('modal-close')) {
-                    this.closeModal(e.target.closest('.modal'));
-                }
+                e.stopPropagation();
+                this.closeModal(btn.closest('.modal'));
             });
         });
 
@@ -259,6 +258,13 @@ class ShoppingListApp {
                     this.closeModal(modal);
                 }
             });
+        });
+
+        // Close modals on Escape
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                document.querySelectorAll('.modal.active').forEach(m => this.closeModal(m));
+            }
         });
 
         // Add category
