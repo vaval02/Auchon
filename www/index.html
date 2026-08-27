@@ -204,6 +204,26 @@
                 <button id="confirmEditProductBtn" class="btn-primary">Valider</button>
             </div>
         </div>
+
+            <!-- Add Unknown Ingredient Modal -->
+            <div id="addUnknownIngredientModal" class="modal">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h3>Ajouter un ingrédient</h3>
+                        <button class="modal-close">&times;</button>
+                    </div>
+                    <div class="modal-body">
+                        <label>Nom de l'ingrédient</label>
+                        <input type="text" id="unknownIngredientName" class="input-field" readonly>
+                        <label>Catégorie</label>
+                        <select id="unknownIngredientCategory" class="input-field"></select>
+                    </div>
+                    <div class="modal-footer">
+                        <button class="btn-secondary modal-close">Annuler</button>
+                        <button id="confirmAddUnknownProductBtn" class="btn-primary">Ajouter l'ingrédient</button>
+                    </div>
+                </div>
+            </div>
     </div>
 
     <!-- Edit Category Modal -->
