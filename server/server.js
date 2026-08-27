@@ -68,5 +68,19 @@ app.get('/search', (req, res) => {
   res.json(scored.filter(s => s.score >= 0.5).map(s => s.product));
 });
 
+// Diagnostic report receiver: saves last report to disk and logs it
+app.post('/report', (req, res) => {
+  try {
+    const payload = req.body || {};
+    console.log('Received diagnostic report from client:', payload && payload.summary ? payload.summary : '(no summary)');
+    const fs = require('fs');
+    fs.writeFileSync('./server/last_report.json', JSON.stringify({ receivedAt: new Date().toISOString(), payload }, null, 2));
+    res.json({ ok: true });
+  } catch (err) {
+    console.error('Error saving report', err);
+    res.status(500).json({ ok: false, error: String(err) });
+  }
+});
+
 const port = process.env.PORT || 3000;
 app.listen(port, () => console.log(`Mock server running on http://localhost:${port}`));

@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Diagnostic Auchon</title>
+  <style>body{font-family:Arial,Helvetica,sans-serif;padding:1rem}</style>
+</head>
+<body>
+  <h2>Diagnostic: capture d'état de l'application</h2>
+  <p>Cette page va charger l'application dans une iframe et envoyer un rapport au serveur.</p>
+  <iframe id="appFrame" src="/" style="width:100%;height:60vh;border:1px solid #ccc"></iframe>
+  <div id="status">En attente du chargement...</div>
+  <script>
+    const iframe = document.getElementById('appFrame');
+    const status = document.getElementById('status');
+    iframe.addEventListener('load', () => {
+      try {
+        const doc = iframe.contentDocument || iframe.contentWindow.document;
+        // collect some useful diagnostics
+        const activeTab = doc.querySelector('.tab-btn.active')?.dataset.tab || null;
+        const tabCount = doc.querySelectorAll('.tab-btn').length;
+        const categoriesCount = doc.querySelectorAll('#categoriesList .category-row').length;
+        const productsCount = doc.querySelectorAll('.product-item').length;
+        const shoppingInProductsTab = !!doc.querySelector('#products-tab .shopping-list');
+        const weeklyMenuExists = !!doc.getElementById('weeklyMenuContainer');
+
+        const summary = {
+          activeTab, tabCount, categoriesCount, productsCount, shoppingInProductsTab, weeklyMenuExists,
+          userAgent: navigator.userAgent,
+          url: window.location.href
+        };
+
+        status.textContent = 'Envoi du rapport...';
+
+        fetch('/report', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ summary, domSnapshot: doc.documentElement.outerHTML.slice(0, 20000) })
+        }).then(r => r.json()).then(j => {
+          status.textContent = 'Rapport envoyé au serveur. Merci.';
+          console.log('Report response', j);
+        }).catch(err => {
+          status.textContent = 'Erreur d'envoi: ' + err;
+          console.error(err);
+        });
+      } catch (err) {
+        status.textContent = 'Impossible d'accéder à l iframe: ' + err;
+        console.error(err);
+      }
+    });
+  </script>
+</body>
+</html>
