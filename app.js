@@ -377,34 +377,6 @@ class ShoppingListApp {
             });
         }
 
-        // Add 'Ajouter l\'ingrédient' button to search actions when no results
-        const addSearchedProductBtn = document.createElement('button');
-        addSearchedProductBtn.id = 'addSearchedProductBtn';
-        addSearchedProductBtn.className = 'btn-primary search-action-btn';
-        addSearchedProductBtn.style.display = 'none';
-        addSearchedProductBtn.textContent = "Ajouter l'ingrédient";
-        const searchActions = document.querySelector('.search-actions');
-        if (searchActions && !document.getElementById('addSearchedProductBtn')) {
-            searchActions.appendChild(addSearchedProductBtn);
-        }
-
-        if (addSearchedProductBtn) {
-            addSearchedProductBtn.addEventListener('click', () => {
-                const q = document.getElementById('productSearchInput')?.value.trim();
-                if (!q) return;
-                const select = document.getElementById('unknownIngredientCategory');
-                if (select) select.innerHTML = '';
-                this.categories.forEach(cat => {
-                    const opt = document.createElement('option');
-                    opt.value = cat.id;
-                    opt.textContent = cat.name;
-                    select.appendChild(opt);
-                });
-                document.getElementById('unknownIngredientName').value = q;
-                this.openModal('addUnknownIngredientModal');
-            });
-        }
-
         const categorySelect = document.getElementById('productsCategorySelect');
         if (categorySelect) {
             categorySelect.addEventListener('change', () => this.handleProductsCategorySelect(categorySelect));
@@ -437,28 +409,6 @@ class ShoppingListApp {
         document.getElementById('addRecipeIngredientsBtn').addEventListener('click', () => {
             this.confirmRecipeIngredients();
         });
-
-        // Confirm adding unknown product from search
-        const confirmAddUnknown = document.getElementById('confirmAddUnknownProductBtn');
-        if (confirmAddUnknown) {
-            confirmAddUnknown.addEventListener('click', () => {
-                const name = document.getElementById('unknownIngredientName').value.trim();
-                const catId = document.getElementById('unknownIngredientCategory').value;
-                if (!name) return;
-                const category = this.categories.find(c => c.id === catId);
-                if (!category) {
-                    alert('Sélectionnez une catégorie valide');
-                    return;
-                }
-                const allIds = this.categories.flatMap(c => c.products.map(p => p.id));
-                const newId = (allIds.length ? Math.max(...allIds) : 0) + 1;
-                category.products.push({ id: newId, name });
-                this.saveData();
-                this.renderProducts();
-                this.renderCategories();
-                this.closeModal(document.getElementById('addUnknownIngredientModal'));
-            });
-        }
 
     }
 
@@ -624,8 +574,6 @@ class ShoppingListApp {
     renderProducts() {
         const list = document.getElementById('productsList');
         list.innerHTML = '';
-        const addBtn = document.getElementById('addSearchedProductBtn');
-        if (addBtn) addBtn.style.display = 'none';
 
         const searchQuery = document.getElementById('productSearchInput')?.value.trim().toLowerCase();
         if (searchQuery) {
@@ -639,49 +587,12 @@ class ShoppingListApp {
                 });
             });
 
-            const addBtn = document.getElementById('addSearchedProductBtn');
             if (matches.length === 0) {
                 const noResult = document.createElement('div');
                 noResult.className = 'empty-state';
                 noResult.textContent = `Aucun produit trouvé pour « ${searchQuery} »`;
-                noResult.style.cursor = 'pointer';
-                noResult.title = "Cliquer pour ajouter cet ingrédient";
-                // also add a clear 'Ajouter' button to ensure click works on mobile
-                const addInlineBtn = document.createElement('button');
-                addInlineBtn.className = 'btn-primary';
-                addInlineBtn.style.marginLeft = '0.5rem';
-                addInlineBtn.textContent = "Ajouter";
-                addInlineBtn.addEventListener('click', (e) => {
-                    e.stopPropagation();
-                    const select = document.getElementById('unknownIngredientCategory');
-                    if (select) select.innerHTML = '';
-                    this.categories.forEach(cat => {
-                        const opt = document.createElement('option');
-                        opt.value = cat.id;
-                        opt.textContent = cat.name;
-                        select.appendChild(opt);
-                    });
-                    document.getElementById('unknownIngredientName').value = searchQuery;
-                    this.openModal('addUnknownIngredientModal');
-                });
-                noResult.appendChild(addInlineBtn);
-                noResult.addEventListener('click', () => {
-                    const select = document.getElementById('unknownIngredientCategory');
-                    if (select) select.innerHTML = '';
-                    this.categories.forEach(cat => {
-                        const opt = document.createElement('option');
-                        opt.value = cat.id;
-                        opt.textContent = cat.name;
-                        select.appendChild(opt);
-                    });
-                    document.getElementById('unknownIngredientName').value = searchQuery;
-                    this.openModal('addUnknownIngredientModal');
-                });
                 list.appendChild(noResult);
-                if (addBtn) addBtn.style.display = '';
                 return;
-            } else {
-                if (addBtn) addBtn.style.display = 'none';
             }
 
             matches.forEach(({ product, categoryName }) => {
@@ -1189,7 +1100,7 @@ class ShoppingListApp {
         });
     }
 
-    async addRecipe() {
+    addRecipe() {
         const nameInput = document.getElementById('recipeNameInput');
         const name = nameInput.value.trim();
 
@@ -1215,9 +1126,6 @@ class ShoppingListApp {
             return;
         }
 
-        const proceed = await this.processUnknownIngredients(ingredients);
-        if (!proceed) return;
-
         const newRecipe = {
             id: Math.max(...this.recipes.map(r => r.id), 0) + 1,
             name: name,
@@ -1228,64 +1136,6 @@ class ShoppingListApp {
         this.saveData();
         this.renderRecipes();
         this.closeModal(document.getElementById('addRecipeModal'));
-    }
-
-    processUnknownIngredients(ingredients) {
-        const unknowns = ingredients.map(i => i.name).filter(name => {
-            const lname = name.toLowerCase();
-            return !this.categories.some(cat => cat.products.some(p => p.name.toLowerCase() === lname));
-        });
-
-        if (unknowns.length === 0) return Promise.resolve(true);
-
-        return new Promise((resolve) => {
-            const queue = [...unknowns];
-            const modal = document.getElementById('addUnknownIngredientModal');
-            const nameInput = document.getElementById('unknownIngredientName');
-            const select = document.getElementById('unknownIngredientCategory');
-            const confirmBtn = document.getElementById('confirmAddUnknownProductBtn');
-
-            const processNext = () => {
-                if (queue.length === 0) {
-                    resolve(true);
-                    return;
-                }
-                const current = queue.shift();
-                nameInput.value = current;
-                select.innerHTML = '';
-                this.categories.forEach(cat => {
-                    const opt = document.createElement('option');
-                    opt.value = cat.id;
-                    opt.textContent = cat.name;
-                    select.appendChild(opt);
-                });
-                this.openModal('addUnknownIngredientModal');
-            };
-
-            const onConfirm = () => {
-                const name = nameInput.value.trim();
-                const catId = select.value;
-                const category = this.categories.find(c => c.id === catId);
-                if (category) {
-                    const allIds = this.categories.flatMap(c => c.products.map(p => p.id));
-                    const newId = (allIds.length ? Math.max(...allIds) : 0) + 1;
-                    category.products.push({ id: newId, name });
-                    this.saveData();
-                }
-                this.closeModal(modal);
-                processNext();
-            };
-
-            const onCancel = () => {
-                this.closeModal(modal);
-                resolve(false);
-            };
-
-            confirmBtn.addEventListener('click', onConfirm, { once: true });
-            modal.querySelectorAll('.modal-close').forEach(b => b.addEventListener('click', onCancel, { once: true }));
-
-            processNext();
-        });
     }
 
     deleteRecipe(recipe) {
