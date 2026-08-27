@@ -644,6 +644,20 @@ class ShoppingListApp {
                 const noResult = document.createElement('div');
                 noResult.className = 'empty-state';
                 noResult.textContent = `Aucun produit trouvé pour « ${searchQuery} »`;
+                noResult.style.cursor = 'pointer';
+                noResult.title = "Cliquer pour ajouter cet ingrédient";
+                noResult.addEventListener('click', () => {
+                    const select = document.getElementById('unknownIngredientCategory');
+                    if (select) select.innerHTML = '';
+                    this.categories.forEach(cat => {
+                        const opt = document.createElement('option');
+                        opt.value = cat.id;
+                        opt.textContent = cat.name;
+                        select.appendChild(opt);
+                    });
+                    document.getElementById('unknownIngredientName').value = searchQuery;
+                    this.openModal('addUnknownIngredientModal');
+                });
                 list.appendChild(noResult);
                 if (addBtn) addBtn.style.display = '';
                 return;
