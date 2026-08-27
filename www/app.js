@@ -649,8 +649,27 @@ class ShoppingListApp {
                 noResult.textContent = `Aucun produit trouvé pour « ${searchQuery} »`;
                 noResult.style.cursor = 'pointer';
                 noResult.title = "Cliquer pour ajouter cet ingrédient";
+                // also add a clear 'Ajouter' button to ensure click works on mobile
+                const addInlineBtn = document.createElement('button');
+                addInlineBtn.className = 'btn-primary';
+                addInlineBtn.style.marginLeft = '0.5rem';
+                addInlineBtn.textContent = "Ajouter";
+                addInlineBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const select = document.getElementById('unknownIngredientCategory');
+                    if (select) select.innerHTML = '';
+                    this.categories.forEach(cat => {
+                        const opt = document.createElement('option');
+                        opt.value = cat.id;
+                        opt.textContent = cat.name;
+                        select.appendChild(opt);
+                    });
+                    document.getElementById('unknownIngredientName').value = searchQuery;
+                    this.openModal('addUnknownIngredientModal');
+                });
+                noResult.appendChild(addInlineBtn);
                 noResult.addEventListener('click', () => {
-                    // open the add-unknown modal prefilled
+                    // open the add-unknown modal prefilled (same as button)
                     const select = document.getElementById('unknownIngredientCategory');
                     if (select) select.innerHTML = '';
                     this.categories.forEach(cat => {
