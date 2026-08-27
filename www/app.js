@@ -1352,6 +1352,14 @@ class ShoppingListApp {
         row.appendChild(removeBtn);
         container.appendChild(row);
 
+        // Ensure the newly added row is visible and friendly for touch devices
+        try {
+            row.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        } catch (e) {
+            // fallback for older browsers
+            container.scrollTop = container.scrollHeight;
+        }
+
         nameInput.focus();
     }
 

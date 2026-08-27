@@ -1029,15 +1029,21 @@ body:not(.products-active) .sidebar {
     flex-direction: column;
     gap: 0.75rem;
     margin-bottom: 0.75rem;
+    max-height: 240px;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    padding-right: 0.25rem;
 }
 
 .ingredient-input-row {
     display: flex;
     gap: 0.5rem;
+    align-items: center;
 }
 
 .ingredient-input-row input {
     flex: 1;
+    min-height: 44px;
 }
 
 .ingredient-input-row .input-qty {
@@ -1063,6 +1069,9 @@ body:not(.products-active) .sidebar {
     display: flex;
     flex-direction: column;
     gap: 0.75rem;
+    max-height: 240px;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
 }
 
 .ingredient-check-item {
@@ -1073,6 +1082,7 @@ body:not(.products-active) .sidebar {
     background-color: var(--bg);
     border-radius: var(--radius);
     border: 1px solid var(--border);
+    min-height: 44px;
 }
 
 .ingredient-check-item input[type="checkbox"] {
@@ -1098,6 +1108,25 @@ body:not(.products-active) .sidebar {
 }
 
 /* Responsive Design */
+
+/* Mobile adjustments for ingredient lists */
+@media (max-width: 480px) {
+    .ingredients-input-list,
+    .recipe-ingredients-check {
+        max-height: 40vh;
+        gap: 0.5rem;
+    }
+
+    .ingredient-input-row input,
+    .ingredient-input-row .input-qty {
+        font-size: 16px;
+        padding: 0.5rem;
+    }
+
+    .ingredient-input-row button {
+        padding: 0.5rem;
+    }
+}
 @media (max-width: 1200px) {
     .products-list, .recipes-list {
         grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
