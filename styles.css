@@ -898,6 +898,14 @@ body:not(.products-active) .sidebar {
     margin-bottom: 0.75rem;
 }
 
+/* Make ingredients list scrollable and touch-friendly for mobile (allow 10+ items) */
+.ingredients-input-list {
+    max-height: 320px;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    padding-right: 6px;
+}
+
 .ingredient-input-row {
     display: flex;
     gap: 0.5rem;
@@ -923,6 +931,48 @@ body:not(.products-active) .sidebar {
 
 .ingredient-input-row button:hover {
     background-color: var(--border);
+}
+
+/* Weekly Menu styles */
+.weekly-menu {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.75rem;
+}
+.weekly-day {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    padding: 0.75rem;
+    border-radius: var(--radius);
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+.weekly-day input {
+    padding: 0.6rem;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+}
+
+/* Category sort toggle */
+.sort-toggle {
+    background: transparent;
+    border: 1px solid var(--border);
+    padding: 0.35rem 0.5rem;
+    border-radius: 8px;
+    cursor: pointer;
+    color: var(--text-light);
+}
+.sort-toggle.active {
+    background: var(--primary-light);
+    color: white;
+    border-color: var(--primary);
+}
+
+@media (max-width: 700px) {
+    .weekly-menu {
+        grid-template-columns: 1fr;
+    }
 }
 
 /* Recipe Ingredients Check */

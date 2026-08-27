@@ -188,3 +188,36 @@ Si vous activez la synchronisation Firebase, les données sont stockées uniquem
 ---
 
 **Créé avec ❤️ | Libre d'utilisation**
+
+## 🛠️ Démarrage local (mock server + site statique)
+
+Pour tester rapidement l'application localement :
+
+- Installer les dépendances (si nécessaire) :
+
+```bash
+npm install
+```
+
+- Lancer le mock server (API fuzzy search) :
+
+```bash
+npm run start-server
+# puis ouvrir http://localhost:3000 si vous voulez tester l'API
+```
+
+- Servir le dossier `www/` (UI) :
+
+```bash
+npm run serve-www
+# puis ouvrir http://localhost:8080
+```
+
+Le mock server fournit des endpoints simples :
+
+- `GET /categories` — liste des catégories
+- `GET /products?q=terme` — recherche de produits
+- `POST /products` — ajouter un produit (body JSON: `{ categoryId, name }`)
+- `GET /search?q=terme` — recherche fuzzy (retourne les meilleurs candidats)
+
+Ces endpoints sont fournis uniquement pour faciliter les tests locaux et peuvent être remplacés par un backend réel (Firebase, Node.js, etc.).

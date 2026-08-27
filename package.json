@@ -9,7 +9,9 @@
     "build:android": "cap sync android",
     "build:ios": "cap sync ios",
     "open:android": "cap open android",
-    "open:ios": "cap open ios"
+    "open:ios": "cap open ios",
+    "start-server": "node server/server.js",
+    "serve-www": "npx http-server www -p 8080"
   },
   "keywords": [],
   "author": "",
@@ -20,5 +22,12 @@
     "@capacitor/cli": "^8.4.0",
     "@capacitor/core": "^8.4.0",
     "@capacitor/ios": "^8.4.0"
+  },
+  "devDependencies": {
+    "http-server": "^14.1.1"
+  },
+  "optionalDependencies": {
+    "cors": "^2.8.6",
+    "express": "^4.22.2"
   }
 }

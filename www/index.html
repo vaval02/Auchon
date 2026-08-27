@@ -39,6 +39,7 @@
                         <button class="tab-btn active" data-tab="products">Produits</button>
                         <button class="tab-btn" data-tab="recipes">Recettes</button>
                         <button class="tab-btn" data-tab="shopping">Liste</button>
+                        <button class="tab-btn" data-tab="menu">Menu</button>
                     </div>
 
                     <div class="products-toolbar active" id="productsToolbar">
@@ -76,6 +77,17 @@
                     </div>
                     <div class="recipes-list" id="recipesList"></div>
                 </section>
+                <!-- Menu Tab (weekly planning) -->
+                <section id="menu-tab" class="tab-content">
+                    <div class="menu-header">
+                        <h2>Menu hebdomadaire</h2>
+                        <button id="saveMenuBtn" class="btn-primary">Enregistrer</button>
+                    </div>
+                    <div class="weekly-menu" id="weeklyMenuContainer">
+                        <!-- Days will be rendered dynamically -->
+                    </div>
+                </section>
+
                 <!-- Shopping Tab (mobile) -->
                 <section id="shopping-tab" class="tab-content">
                     <div class="shopping-header">
@@ -139,10 +151,30 @@
             </div>
             <div class="modal-body">
                 <input type="text" id="productInput" placeholder="Nom du produit" class="input-field">
+                <label for="productCategorySelect">Catégorie</label>
+                <select id="productCategorySelect" class="input-field"></select>
             </div>
             <div class="modal-footer">
                 <button class="btn-secondary modal-close">Annuler</button>
                 <button id="confirmProductBtn" class="btn-primary">Ajouter</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Unknown Ingredient Modal: ask for category and allow adding -->
+    <div id="unknownIngredientModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Ingrédient inconnu</h3>
+                <button class="modal-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p id="unknownIngredientLabel">L'ingrédient <strong></strong> n'existe pas. Sélectionnez une catégorie :</p>
+                <select id="unknownIngredientCategorySelect" class="input-field"></select>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-secondary modal-close">Annuler</button>
+                <button id="confirmUnknownIngredientBtn" class="btn-primary">Ajouter l'ingrédient</button>
             </div>
         </div>
     </div>
@@ -265,6 +297,7 @@
         </div>
     </div>
 
+    <script src="components.js"></script>
     <script src="app.js"></script>
     <script src="firebase-config.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>

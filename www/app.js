@@ -40,6 +40,7 @@ class ShoppingListApp {
             {
                 id: 'santé',
                 name: 'Santé et hygiène',
+                autoSort: true,
                 products: [
                     { id: 1, name: 'Papier toilette' },
                     { id: 2, name: 'Sopalin' },
@@ -51,6 +52,7 @@ class ShoppingListApp {
             {
                 id: 'fruits-legumes',
                 name: 'Fruits et légumes',
+                autoSort: true,
                 products: [
                     { id: 6, name: 'Carottes' },
                     { id: 7, name: 'Courgettes' },
@@ -64,6 +66,7 @@ class ShoppingListApp {
             {
                 id: 'viandes-poissons',
                 name: 'Viandes et poissons',
+                autoSort: true,
                 products: [
                     { id: 13, name: 'Viande hachée' },
                     { id: 14, name: 'Poulet' },
@@ -75,6 +78,7 @@ class ShoppingListApp {
             {
                 id: 'produits-laitiers',
                 name: 'Produits laitiers',
+                autoSort: true,
                 products: [
                     { id: 18, name: 'Lait' },
                     { id: 19, name: 'Yaourt' },
@@ -86,6 +90,7 @@ class ShoppingListApp {
             {
                 id: 'epicerie',
                 name: 'Épicerie',
+                autoSort: true,
                 products: [
                     { id: 23, name: 'Pâtes' },
                     { id: 24, name: 'Riz' },
@@ -99,6 +104,7 @@ class ShoppingListApp {
             {
                 id: 'boissons',
                 name: 'Boissons',
+                autoSort: true,
                 products: [
                     { id: 30, name: 'Eau minérale' },
                     { id: 31, name: 'Jus d\'orange' },
@@ -110,6 +116,7 @@ class ShoppingListApp {
             {
                 id: 'surgeles',
                 name: 'Surgelés',
+                autoSort: true,
                 products: [
                     { id: 35, name: 'Glaçons' },
                     { id: 36, name: 'Frites' },
@@ -120,6 +127,7 @@ class ShoppingListApp {
             {
                 id: 'autres',
                 name: 'Autres',
+                autoSort: true,
                 products: [
                     { id: 39, name: 'Pain' },
                     { id: 40, name: 'Biscuits' }
@@ -216,6 +224,9 @@ class ShoppingListApp {
         document.body.classList.add('products-active');
         this.renderCategories();
         this.renderProductsCategorySelect();
+        this.populateProductCategorySelect();
+        this.loadMenu();
+        this.renderMenu();
         this.updateProductsToolbarVisibility();
         this.renderProducts();
         this.renderRecipes();
@@ -395,6 +406,41 @@ class ShoppingListApp {
             this.saveEditedRecipe();
         });
 
+        // Unknown ingredient modal confirmation
+        const confirmUnknownBtn = document.getElementById('confirmUnknownIngredientBtn');
+        if (confirmUnknownBtn) {
+            confirmUnknownBtn.addEventListener('click', () => {
+                const modal = document.getElementById('unknownIngredientModal');
+                const ingredientName = modal.dataset.ingredientName || '';
+                const sel = document.getElementById('unknownIngredientCategorySelect');
+                const catId = sel?.value;
+                const category = this.categories.find(c => c.id === catId) || this.categories[0];
+                const newProduct = { id: this.getNextProductId(), name: ingredientName };
+                if (!category.products) category.products = [];
+                category.products.push(newProduct);
+                this.saveData();
+                // If we have a target row id, try to update the input
+                const targetRowId = modal.dataset.targetRowId;
+                if (targetRowId) {
+                    const row = document.querySelector(`[data-row-id="${targetRowId}"]`);
+                    if (row) {
+                        const input = row.querySelector('input:first-child');
+                        if (input) input.value = newProduct.name;
+                    }
+                }
+                this.closeModal(modal);
+                this.renderProducts();
+            });
+        }
+
+        // Weekly menu save button
+        const saveMenuBtn = document.getElementById('saveMenuBtn');
+        if (saveMenuBtn) {
+            saveMenuBtn.addEventListener('click', () => {
+                this.saveMenu();
+            });
+        }
+
         // Recipe details modal confirmation
         document.getElementById('addRecipeIngredientsBtn').addEventListener('click', () => {
             this.confirmRecipeIngredients();
@@ -414,6 +460,7 @@ class ShoppingListApp {
             document.getElementById('categoryInput').focus();
         } else if (modalId === 'addProductModal') {
             document.getElementById('productInput').value = '';
+            this.populateProductCategorySelect();
             document.getElementById('productInput').focus();
         } else if (modalId === 'addRecipeModal') {
             document.getElementById('recipeNameInput').value = '';
@@ -575,7 +622,9 @@ class ShoppingListApp {
 
             const matches = [];
             this.categories.forEach(category => {
-                category.products.forEach(product => {
+                const productsToShow = category.autoSort ? [...category.products].sort((a, b) => a.name.localeCompare(b.name)) : category.products;
+
+                productsToShow.forEach(product => {
                     if (product.name.toLowerCase().includes(searchQuery)) {
                         matches.push({ product, categoryName: category.name });
                     }
@@ -586,7 +635,19 @@ class ShoppingListApp {
                 const noResult = document.createElement('div');
                 noResult.className = 'empty-state';
                 noResult.textContent = `Aucun produit trouvé pour « ${searchQuery} »`;
+                const addBtn = document.createElement('button');
+                addBtn.className = 'btn-primary';
+                addBtn.textContent = `Ajouter "${searchQuery}"`;
+                addBtn.addEventListener('click', () => {
+                    // Open add product modal prefilled and ask for category
+                    this.openModal('addProductModal');
+                    document.getElementById('productInput').value = searchQuery;
+                    this.populateProductCategorySelect();
+                    const sel = document.getElementById('productCategorySelect');
+                    if (sel) sel.focus();
+                });
                 list.appendChild(noResult);
+                list.appendChild(addBtn);
                 return;
             }
 
@@ -671,6 +732,19 @@ class ShoppingListApp {
             const headingActions = document.createElement('div');
             headingActions.className = 'category-section-actions';
 
+            const sortToggle = document.createElement('button');
+            sortToggle.type = 'button';
+            sortToggle.className = 'category-section-action-btn sort-toggle';
+            sortToggle.title = 'Activer/désactiver le tri alphabétique';
+            sortToggle.innerHTML = '<i class="fas fa-sort-alpha-down"></i>';
+            if (category.autoSort) sortToggle.classList.add('active');
+            sortToggle.addEventListener('click', (e) => {
+                e.stopPropagation();
+                category.autoSort = !category.autoSort;
+                this.saveData();
+                this.renderProducts();
+            });
+
             const editBtn = document.createElement('button');
             editBtn.type = 'button';
             editBtn.className = 'category-section-action-btn';
@@ -691,6 +765,7 @@ class ShoppingListApp {
                 this.handleAddProductToCategory(index);
             });
 
+            headingActions.appendChild(sortToggle);
             headingActions.appendChild(editBtn);
             headingActions.appendChild(addProductSectionBtn);
 
@@ -813,16 +888,59 @@ class ShoppingListApp {
             return;
         }
 
-        const category = this.categories[this.currentCategory];
-        const newProduct = {
-            id: this.getNextProductId(),
-            name: name
-        };
+        // Determine category from select if present
+        let category = null;
+        const sel = document.getElementById('productCategorySelect');
+        if (sel && sel.value) {
+            category = this.categories.find(c => c.id === sel.value) || null;
+        }
+        // fallback to currentCategory
+        if (!category && this.currentCategory >= 0) category = this.categories[this.currentCategory];
+        // fallback to first category
+        if (!category && this.categories.length) category = this.categories[0];
 
+        const newProduct = { id: this.getNextProductId(), name: name };
+        if (!category.products) category.products = [];
         category.products.push(newProduct);
         this.saveData();
         this.renderProducts();
         this.closeModal(document.getElementById('addProductModal'));
+    }
+
+    populateProductCategorySelect() {
+        const sel = document.getElementById('productCategorySelect');
+        if (!sel) return;
+        sel.innerHTML = '';
+        this.categories.forEach(cat => {
+            const opt = document.createElement('option');
+            opt.value = cat.id;
+            opt.textContent = cat.name;
+            sel.appendChild(opt);
+        });
+    }
+
+    populateUnknownIngredientCategorySelect() {
+        const sel = document.getElementById('unknownIngredientCategorySelect');
+        if (!sel) return;
+        sel.innerHTML = '';
+        this.categories.forEach(cat => {
+            const opt = document.createElement('option');
+            opt.value = cat.id;
+            opt.textContent = cat.name;
+            sel.appendChild(opt);
+        });
+    }
+
+    showUnknownIngredientModal(ingredientName, targetRow) {
+        const modal = document.getElementById('unknownIngredientModal');
+        const label = document.getElementById('unknownIngredientLabel');
+        if (!modal || !label) return;
+        label.innerHTML = `L'ingrédient <strong>${ingredientName}</strong> n'existe pas. Sélectionnez une catégorie :`;
+        this.populateUnknownIngredientCategorySelect();
+        modal.classList.add('active');
+        // store references
+        modal.dataset.ingredientName = ingredientName;
+        modal.dataset.targetRowId = targetRow ? targetRow.dataset.rowId : '';
     }
 
     deleteProduct(category, product) {
@@ -936,6 +1054,93 @@ class ShoppingListApp {
         if (typeof quantity === 'number') return quantity;
         const match = String(quantity).trim().match(/^(\d+)\b/);
         return match ? parseInt(match[1], 10) : 1;
+    }
+
+    // Simple Levenshtein distance and fuzzy matching utilities
+    levenshtein(a, b) {
+        a = a.toLowerCase();
+        b = b.toLowerCase();
+        const m = a.length;
+        const n = b.length;
+        const dp = Array.from({ length: m + 1 }, () => new Array(n + 1).fill(0));
+        for (let i = 0; i <= m; i++) dp[i][0] = i;
+        for (let j = 0; j <= n; j++) dp[0][j] = j;
+        for (let i = 1; i <= m; i++) {
+            for (let j = 1; j <= n; j++) {
+                const cost = a[i - 1] === b[j - 1] ? 0 : 1;
+                dp[i][j] = Math.min(dp[i - 1][j] + 1, dp[i][j - 1] + 1, dp[i - 1][j - 1] + cost);
+            }
+        }
+        return dp[m][n];
+    }
+
+    similarity(a, b) {
+        if (!a || !b) return 0;
+        const dist = this.levenshtein(a, b);
+        const maxLen = Math.max(a.length, b.length);
+        if (maxLen === 0) return 1;
+        return 1 - dist / maxLen;
+    }
+
+    findBestMatch(input, candidates, threshold = 0.8) {
+        if (!input) return null;
+        let best = null;
+        let bestScore = 0;
+        candidates.forEach(c => {
+            const score = this.similarity(input, c);
+            if (score > bestScore) {
+                bestScore = score;
+                best = c;
+            }
+        });
+        return bestScore >= threshold ? best : null;
+    }
+
+    // Weekly menu: load, render and save
+    loadMenu() {
+        const raw = localStorage.getItem('weeklyMenu');
+        if (raw) {
+            try {
+                this.weeklyMenu = JSON.parse(raw);
+            } catch (e) {
+                this.weeklyMenu = this.getDefaultWeeklyMenu();
+            }
+        } else {
+            this.weeklyMenu = this.getDefaultWeeklyMenu();
+        }
+    }
+
+    getDefaultWeeklyMenu() {
+        return {
+            Lundi: '', Mardi: '', Mercredi: '', Jeudi: '', Vendredi: '', Samedi: '', Dimanche: ''
+        };
+    }
+
+    renderMenu() {
+        const container = document.getElementById('weeklyMenuContainer');
+        if (!container) return;
+        container.innerHTML = '';
+        Object.keys(this.weeklyMenu).forEach(day => {
+            const dayBox = document.createElement('div');
+            dayBox.className = 'weekly-day';
+            const title = document.createElement('strong');
+            title.textContent = day;
+            const input = document.createElement('input');
+            input.type = 'text';
+            input.placeholder = 'Nom de la recette';
+            input.value = this.weeklyMenu[day] || '';
+            input.addEventListener('input', () => {
+                this.weeklyMenu[day] = input.value;
+            });
+            dayBox.appendChild(title);
+            dayBox.appendChild(input);
+            container.appendChild(dayBox);
+        });
+    }
+
+    saveMenu() {
+        localStorage.setItem('weeklyMenu', JSON.stringify(this.weeklyMenu || this.getDefaultWeeklyMenu()));
+        alert('Menu enregistré');
     }
 
     getShoppingListGroups() {
@@ -1353,6 +1558,35 @@ class ShoppingListApp {
         container.appendChild(row);
 
         nameInput.focus();
+
+        // add unknown button + fuzzy matching similar to addIngredientInputRow
+        row.dataset.rowId = 'r-' + Date.now() + '-' + Math.floor(Math.random() * 1000);
+        const addUnknownBtn = document.createElement('button');
+        addUnknownBtn.className = 'btn-secondary';
+        addUnknownBtn.type = 'button';
+        addUnknownBtn.style.display = 'none';
+        addUnknownBtn.textContent = 'Ajouter';
+        addUnknownBtn.addEventListener('click', () => {
+            const val = nameInput.value.trim();
+            if (!val) return;
+            this.showUnknownIngredientModal(val, row);
+        });
+
+        // insert addUnknownBtn before remove button
+        row.insertBefore(addUnknownBtn, removeBtn);
+
+        nameInput.addEventListener('input', () => {
+            const val = nameInput.value.trim();
+            if (!val) { addUnknownBtn.style.display = 'none'; return; }
+            const products = this.categories.flatMap(c => c.products.map(p => p.name));
+            const match = this.findBestMatch(val, products, 0.8);
+            if (match) {
+                nameInput.value = match;
+                addUnknownBtn.style.display = 'none';
+            } else {
+                addUnknownBtn.style.display = 'inline-flex';
+            }
+        });
     }
 
     saveEditedRecipe() {
@@ -1376,6 +1610,7 @@ class ShoppingListApp {
         
         const row = document.createElement('div');
         row.className = 'ingredient-input-row';
+        row.dataset.rowId = 'r-' + Date.now() + '-' + Math.floor(Math.random() * 1000);
 
         const nameInput = document.createElement('input');
         nameInput.type = 'text';
@@ -1394,12 +1629,43 @@ class ShoppingListApp {
             row.remove();
         });
 
+        // Inline add button for unknown ingredient
+        const addUnknownBtn = document.createElement('button');
+        addUnknownBtn.className = 'btn-secondary';
+        addUnknownBtn.type = 'button';
+        addUnknownBtn.style.display = 'none';
+        addUnknownBtn.textContent = 'Ajouter';
+        addUnknownBtn.addEventListener('click', () => {
+            const val = nameInput.value.trim();
+            if (!val) return;
+            this.showUnknownIngredientModal(val, row);
+        });
+
         row.appendChild(nameInput);
         row.appendChild(qtyInput);
+        row.appendChild(addUnknownBtn);
         row.appendChild(removeBtn);
         container.appendChild(row);
 
         nameInput.focus();
+
+        // Attach input listener for fuzzy matching
+        nameInput.addEventListener('input', () => {
+            const val = nameInput.value.trim();
+            if (!val) {
+                addUnknownBtn.style.display = 'none';
+                return;
+            }
+            const products = this.categories.flatMap(c => c.products.map(p => p.name));
+            const match = this.findBestMatch(val, products, 0.8);
+            if (match) {
+                nameInput.value = match;
+                addUnknownBtn.style.display = 'none';
+            } else {
+                // show add button when no match
+                addUnknownBtn.style.display = 'inline-flex';
+            }
+        });
     }
 
     // ==================== UTILITY FUNCTIONS ====================
